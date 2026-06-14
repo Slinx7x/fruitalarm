@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0a0a0f" />
+  <meta name="description" content="Never miss a rare Blox Fruits stock again. Real-time alerts for Kitsune, Dragon, Leopard and more." />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="FruitAlarm" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <title>FruitAlarm — Blox Fruits Stock Notifier</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="app-header">
+    <div class="header-left">
+      <div class="app-logo">
+        <img src="icon.svg" alt="FruitAlarm logo" width="36" height="36" />
+        <div>
+          <span class="app-name">FruitAlarm</span>
+          <span class="app-sub">Blox Fruits · Stock Notifier</span>
+        </div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="live-badge" id="liveBadge">
+        <span class="live-dot"></span>
+        <span>LIVE</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===== RESET TIMER BANNER ===== -->
+  <div class="timer-banner">
+    <div class="timer-left">
+      <span class="timer-label">Next stock reset in</span>
+      <span class="timer-value" id="countdown">--:--:--</span>
+    </div>
+    <div class="timer-right">
+      <span class="timer-label">Stock cycle</span>
+      <span class="timer-value">#<span id="cycleNum">—</span></span>
+    </div>
+  </div>
+
+  <!-- ===== ALARM STATUS BAR ===== -->
+  <div class="alarm-status-bar" id="alarmStatusBar" style="display:none;">
+    <span class="alarm-status-icon">🚨</span>
+    <span id="alarmStatusText">Wishlist fruit is in stock!</span>
+    <button class="alarm-stop-btn" onclick="stopAlarm()">Stop</button>
+  </div>
+
+  <!-- ===== MAIN CONTENT ===== -->
+  <main>
+
+    <!-- CURRENT STOCK -->
+    <section class="section">
+      <div class="section-header">
+        <h2 class="section-title">Current Stock</h2>
+        <button class="refresh-btn" id="refreshBtn" onclick="refreshStock()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+          Refresh
+        </button>
+      </div>
+      <div class="stock-grid" id="stockGrid">
+        <!-- filled by JS -->
+      </div>
+      <p class="stock-note" id="stockNote">Showing simulated stock. Connect a real API for live data.</p>
+    </section>
+
+    <!-- DIVIDER -->
+    <div class="section-divider"></div>
+
+    <!-- WISHLIST -->
+    <section class="section">
+      <div class="section-header">
+        <h2 class="section-title">My Wishlist</h2>
+        <span class="section-sub">Alarm triggers when these appear</span>
+      </div>
+      <div class="wishlist-list" id="wishlistContainer">
+        <!-- filled by JS -->
+      </div>
+    </section>
+
+    <!-- DIVIDER -->
+    <div class="section-divider"></div>
+
+    <!-- ALARM SETTINGS -->
+    <section class="section">
+      <h2 class="section-title">Alarm Settings</h2>
+
+      <div class="setting-group">
+        <label class="setting-label">Alarm sound</label>
+        <div class="sound-options" id="soundOptions">
+          <button class="sound-btn active" data-sound="beep" onclick="selectSound(this)">
+            <span class="sound-icon">🔔</span>
+            <span class="sound-name">Classic beep</span>
+          </button>
+          <button class="sound-btn" data-sound="siren" onclick="selectSound(this)">
+            <span class="sound-icon">🚨</span>
+            <span class="sound-name">Rising siren</span>
+          </button>
+          <button class="sound-btn" data-sound="rapid" onclick="selectSound(this)">
+            <span class="sound-icon">⚡</span>
+            <span class="sound-name">Rapid urgent</span>
+          </button>
+          <button class="sound-btn" data-sound="chime" onclick="selectSound(this)">
+            <span class="sound-icon">🎵</span>
+            <span class="sound-name">Soft chime</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="setting-group">
+        <label class="setting-label">Volume</label>
+        <div class="volume-row">
+          <span class="vol-icon">🔈</span>
+          <input type="range" id="volumeSlider" min="0" max="100" value="80" class="vol-slider" oninput="updateVolume(this.value)" />
+          <span class="vol-icon">🔊</span>
+          <span class="vol-val" id="volVal">80%</span>
+        </div>
+      </div>
+
+      <button class="test-alarm-btn" id="testBtn" onclick="testAlarm()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        Test Alarm Sound
+      </button>
+    </section>
+
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="app-footer">
+    <p>FruitAlarm is fan-made and not affiliated with Roblox or Blox Fruits.</p>
+    <p>Add this page to your Home Screen for the best experience.</p>
+  </footer>
+
+  <script src="app.js"></script>
+  <script>
+    // Register service worker (enables PWA install + offline)
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("sw.js").catch(console.warn);
+    }
+  </script>
+</body>
+</html>
