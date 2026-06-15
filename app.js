@@ -1,398 +1,210 @@
-// ================================================================
-//  FruitAlarm — app.js  (v3 — Live Stock + Real Images)
-// ================================================================
+# FruitAlarm — Complete Setup Guide
+### Blox Fruits Stock Notifier | Fan Project
 
-// ── BACKEND URL ───────────────────────────────────────────────────
-// After you deploy to Render.com, replace this with YOUR URL.
-// Example: "https://fruitalarm-backend.onrender.com"
-// Leave as-is for now — the app falls back to simulated stock.
-const BACKEND_URL = "https://fruitalarm-backend.onrender.com";
+---
 
-// ── FULL FRUIT DATABASE ───────────────────────────────────────────
-// Real images from the Blox Fruits Fandom Wiki.
-// The image URL format: the wiki serves images via their CDN.
-// We use the /revision/latest/scale-to-width-down/128 path for
-// consistent 128px thumbnails.
-const W = "https://static.wikia.nocookie.net/blox-fruits/images";
-const ALL_FRUITS = [
-  // ── MYTHICAL ──
-  { id:"kitsune",  name:"Kitsune",   rarity:"mythical",  price:8_000_000, img:`${W}/c/ce/Kitsune_Fruit_Icon.png/revision/latest/scale-to-width-down/128?cb=20240922054113` },
-  { id:"dragon",   name:"Dragon",    rarity:"mythical",  price:9_500_000, img:`${W}/3/3b/Dragon_Fruit_Icon.png/revision/latest/scale-to-width-down/128?cb=20231012000000` },
-  { id:"leopard",  name:"Leopard",   rarity:"mythical",  price:5_000_000, img:`${W}/a/a7/Leopard_Fruit_Icon.png/revision/latest/scale-to-width-down/128?cb=20230920000000` },
-  { id:"dough",    name:"Dough",     rarity:"mythical",  price:2_800_000, img:`${W}/0/08/Dough_Fruit_Icon.png/revision/latest/scale-to-width-down/128?cb=20220601000000` },
-  { id:"control",  name:"Control",   rarity:"mythical",  price:3_200_000, img:`${W}/d/d2/Control_Fruit_Icon.png/revision/latest/scale-to-width-down/128?cb=20220601000000` },
-  { id:"venom",    name:"Venom",     rarity:"mythical",  price:3_000_000, img:`${W}/9/90/Venom_Fruit_Icon.png/revision/latest/scale-to-width-down/128?cb=20220601000000` },
-  { id:"soul",     name:"Soul",      rarity:"mythical",  price:3_200_000, img:`${W}/5/56/Soul_Fruit_Icon.png/revision/latest/scale-to-width-down/128?cb=20220601000000` },
-  { id:"gas",      name:"Gas",       rarity:"mythical",  price:1_800_000, img:`${W}/6/6c/Gas_Fruit_Icon.png/revision/latest/scale-to-width-down/128?cb=20230101000000` },
-  { id:"trex",     name:"T-Rex",     rarity:"mythical",  price:2_000_000, img:`${W}/8/8b/T-Rex_Fruit_Icon.png/revision/latest/scale-to-width-down/128?cb=20240101000000` },
-  { id:"mammoth",  name:"Mammoth",   rarity:"mythical",  price:2_000_000, img:`${W}/1/12/Mammoth_Fruit_Icon.png/revision/latest/scale-to-width-down/128?cb=20240101000000` },
-  // ── LEGENDARY ──
-  { id:"buddha",   name:"Buddha",    rarity:"legendary", price:1_200_000, img:`${W}/c/c3/Buddha_Fruit_Icon.png/revision/latest/scale-to-width-down/128?cb=20220601000000` },
-  { id:"shadow",   name:"Shadow",    rarity:"legendary", price:2_900_000, img:`${W}/a/a1/Shadow_Fruit_Icon.png/revision/latest/scale-to-width-down/128?cb=20220601000000` },
-  { id:"blizzard", name:"Blizzard",  rarity:"legendary", price:2_500_000, img:`${W}/b/b6/Blizzard_Fruit_Icon.png/revision/latest/scale-to-width-down/128?cb=20230101000000` },
-  { id:"rumble",   name:"Rumble",    rarity:"legendary", price:2_100_000, img:`${W}/a/a4/Rumble_Fruit_Icon.png/revision/latest/scale-to-width-down/128?cb=20220601000000` },
-  { id:"quake",    name:"Quake",     rarity:"legendary", price:1_000_000, img:`${W}/a/a1/Quake_Fruit_Icon.png/revision/latest/scale-to-width-down/128?cb=20220601000000` },
-  { id:"gravity",  name:"Gravity",   rarity:"legendary", price:2_500_000, img:`${W}/3/34/Gravity_Fruit_Icon.png/revision/latest/scale-to-width-down/128?cb=20220601000000` },
-  { id:"phoenix",  name:"Phoenix",   rarity:"legendary", price:1_800_000, img:`${W}/b/bf/Phoenix_Fruit_Icon.png/revision/latest/scale-to-width-down/128?cb=20220601000000` },
-  { id:"portal",   name:"Portal",    rarity:"legendary", price:1_400_000, img:`${W}/6/62/Portal_Fruit_Icon.png/revision/latest/scale-to-width-down/128?cb=20220601000000` },
-  { id:"pain",     name:"Pain",      rarity:"legendary", price:2_700_000, img:`${W}/1/12/Pain_Fruit_Icon.png/revision/latest/scale-to-width-down/128?cb=20230601000000` },
-  { id:"dark",     name:"Dark",      rarity:"legendary", price:500_000,   img:`${W}/6/67/Dark_Fruit_Icon.png/revision/latest/scale-to-width-down/128?cb=20220601000000` },
-  { id:"light",    name:"Light",     rarity:"legendary", price:650_000,   img:`${W}/3/3e/Light_Fruit_Icon.png/revision/latest/scale-to-width-down/128?cb=20220601000000` },
-  { id:"magma",    name:"Magma",     rarity:"legendary", price:850_000,   img:`${W}/4/45/Magma_Fruit_Icon.png/revision/latest/scale-to-width-down/128?cb=20220601000000` },
-  { id:"flame",    name:"Flame",     rarity:"legendary", price:250_000,   img:`${W}/f/fd/Flame_Fruit_Icon.png/revision/latest/scale-to-width-down/128?cb=20220601000000` },
-  { id:"ice",      name:"Ice",       rarity:"legendary", price:350_000,   img:`${W}/5/57/Ice_Fruit_Icon.png/revision/latest/scale-to-width-down/128?cb=20220601000000` },
-  { id:"sand",     name:"Sand",      rarity:"legendary", price:420_000,   img:`${W}/1/14/Sand_Fruit_Icon.png/revision/latest/scale-to-width-down/128?cb=20220601000000` },
-  { id:"spin",     name:"Spin",      rarity:"legendary", price:7_500,     img:`${W}/7/7a/Spin_Fruit_Icon.png/revision/latest/scale-to-width-down/128?cb=20220601000000` },
-  { id:"lightning",name:"Lightning", rarity:"legendary", price:2_500_000, img:`${W}/4/42/Lightning_Fruit_Icon.png/revision/latest/scale-to-width-down/128?cb=20230601000000` },
-  { id:"eagle",    name:"Eagle",     rarity:"legendary", price:1_200_000, img:`${W}/c/ca/Eagle_Fruit_Icon.png/revision/latest/scale-to-width-down/128?cb=20230601000000` },
-  // ── RARE ──
-  { id:"rubber",   name:"Rubber",    rarity:"rare",      price:750_000,   img:`${W}/c/cf/Rubber_Fruit_Icon.png/revision/latest/scale-to-width-down/128?cb=20220601000000` },
-  { id:"spider",   name:"Spider",    rarity:"rare",      price:1_500_000, img:`${W}/2/2d/Spider_Fruit_Icon.png/revision/latest/scale-to-width-down/128?cb=20220601000000` },
-  { id:"love",     name:"Love",      rarity:"rare",      price:1_200_000, img:`${W}/f/f3/Love_Fruit_Icon.png/revision/latest/scale-to-width-down/128?cb=20220601000000` },
-  { id:"diamond",  name:"Diamond",   rarity:"rare",      price:600_000,   img:`${W}/e/e5/Diamond_Fruit_Icon.png/revision/latest/scale-to-width-down/128?cb=20220601000000` },
-  { id:"smoke",    name:"Smoke",     rarity:"rare",      price:100_000,   img:`${W}/9/97/Smoke_Fruit_Icon.png/revision/latest/scale-to-width-down/128?cb=20220601000000` },
-  { id:"spike",    name:"Spike",     rarity:"rare",      price:180_000,   img:`${W}/1/1a/Spike_Fruit_Icon.png/revision/latest/scale-to-width-down/128?cb=20220601000000` },
-  { id:"bomb",     name:"Bomb",      rarity:"rare",      price:5_000,     img:`${W}/c/c5/Bomb_Fruit_Icon.png/revision/latest/scale-to-width-down/128?cb=20220601000000` },
-  { id:"ghost",    name:"Ghost",     rarity:"rare",      price:550_000,   img:`${W}/e/e7/Ghost_Fruit_Icon.png/revision/latest/scale-to-width-down/128?cb=20220601000000` },
-  { id:"barrier",  name:"Barrier",   rarity:"rare",      price:800_000,   img:`${W}/b/b4/Barrier_Fruit_Icon.png/revision/latest/scale-to-width-down/128?cb=20220601000000` },
-  { id:"string",   name:"String",    rarity:"rare",      price:1_500_000, img:`${W}/9/9b/String_Fruit_Icon.png/revision/latest/scale-to-width-down/128?cb=20220601000000` },
-  { id:"paw",      name:"Paw",       rarity:"rare",      price:2_300_000, img:`${W}/4/40/Paw_Fruit_Icon.png/revision/latest/scale-to-width-down/128?cb=20220601000000` },
-  { id:"door",     name:"Door",      rarity:"rare",      price:950_000,   img:`${W}/d/d7/Door_Fruit_Icon.png/revision/latest/scale-to-width-down/128?cb=20220601000000` },
-  // ── COMMON ──
-  { id:"rocket",   name:"Rocket",    rarity:"common",    price:5_000,     img:`${W}/2/26/Rocket_Fruit_Icon.png/revision/latest/scale-to-width-down/128?cb=20220601000000` },
-  { id:"spring",   name:"Spring",    rarity:"common",    price:60_000,    img:`${W}/7/77/Spring_Fruit_Icon.png/revision/latest/scale-to-width-down/128?cb=20220601000000` },
-  { id:"kilo",     name:"Kilo",      rarity:"common",    price:5_000,     img:`${W}/b/b5/Kilo_Fruit_Icon.png/revision/latest/scale-to-width-down/128?cb=20220601000000` },
-  { id:"chop",     name:"Chop",      rarity:"common",    price:30_000,    img:`${W}/4/4e/Chop_Fruit_Icon.png/revision/latest/scale-to-width-down/128?cb=20220601000000` },
-  { id:"revive",   name:"Revive",    rarity:"common",    price:550_000,   img:`${W}/r/re/Revive_Fruit_Icon.png/revision/latest/scale-to-width-down/128?cb=20220601000000` },
-];
+## Your File Structure
 
-// Build lookup by name (lowercase) for matching wiki names to our DB
-const FRUIT_BY_NAME = {};
-ALL_FRUITS.forEach(f => {
-  FRUIT_BY_NAME[f.name.toLowerCase()] = f;
-  FRUIT_BY_NAME[f.id.toLowerCase()]   = f;
-});
+```
+FruitAlarm/
+├── index.html       ← The app (open this in browser)
+├── style.css        ← Dark theme styling
+├── app.js           ← App brain — alarm, wishlist, UI
+├── fruits.js        ← All 41 verified fruits + prices
+├── icons.js         ← SVG icons for every fruit
+├── manifest.json    ← Makes it installable on Android
+├── sw.js            ← Offline support
+├── icon.svg         ← App icon
+│
+└── backend/
+    ├── server.js    ← Stock bot (scrapes FruityBlox every 2-4 hrs)
+    └── package.json ← Backend config
+```
 
-// ── APP STATE ─────────────────────────────────────────────────────
-const state = {
-  wishlist:      JSON.parse(localStorage.getItem("fa_wishlist") || "[]"),
-  soundType:     localStorage.getItem("fa_sound")   || "beep",
-  volume:        parseFloat(localStorage.getItem("fa_volume") || "0.8"),
-  currentStock:  [],   // array of fruit objects currently in stock
-  stockSource:   "loading",
-  lastUpdated:   null,
-  alarmRunning:  false,
-  alarmInterval: null,
-  audioCtx:      null,
-  testRunning:   false,
-  testInterval:  null,
-};
+---
 
-// ── AUDIO ENGINE ──────────────────────────────────────────────────
-function getCtx() {
-  if (!state.audioCtx || state.audioCtx.state === "closed")
-    state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  return state.audioCtx;
-}
+## STEP 1 — Test locally on your laptop
 
-function tone(ctx, freq, t0, dur, type = "sine") {
-  const o = ctx.createOscillator(), g = ctx.createGain();
-  o.connect(g); g.connect(ctx.destination);
-  o.type = type;
-  o.frequency.setValueAtTime(freq, t0);
-  g.gain.setValueAtTime(state.volume * 0.35, t0);
-  g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
-  o.start(t0); o.stop(t0 + dur);
-}
+1. Open VS Code → open your `FruitAlarm` folder
+2. Right-click `index.html` → **Open with Live Server**
+   - No Live Server? Press `Ctrl+Shift+X` → search "Live Server" → Install
+3. App opens in Chrome
+4. Stock shows "Backend not deployed yet" — that's correct for now
+5. Test the alarm button, wishlist checkboxes, and countdown timer
 
-const SOUNDS = {
-  beep:  ctx => { const t = ctx.currentTime; tone(ctx,880,t+0.00,0.18,"square"); tone(ctx,880,t+0.22,0.18,"square"); tone(ctx,660,t+0.55,0.18,"square"); tone(ctx,660,t+0.77,0.18,"square"); },
-  siren: ctx => { const t = ctx.currentTime, o = ctx.createOscillator(), g = ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.type="sawtooth"; o.frequency.setValueAtTime(300,t); o.frequency.linearRampToValueAtTime(1200,t+0.8); g.gain.setValueAtTime(state.volume*0.25,t); g.gain.linearRampToValueAtTime(0.001,t+0.85); o.start(t); o.stop(t+0.9); },
-  rapid: ctx => { const t = ctx.currentTime; for(let i=0;i<6;i++) tone(ctx,1200,t+i*0.12,0.08,"square"); },
-  chime: ctx => { const t = ctx.currentTime; [523,659,784,1047].forEach((f,i) => tone(ctx,f,t+i*0.18,0.4)); },
-};
+---
 
-function playSound() {
-  const ctx = getCtx();
-  if (ctx.state === "suspended") ctx.resume();
-  (SOUNDS[state.soundType] || SOUNDS.beep)(ctx);
-}
+## STEP 2 — Update your GitHub repo (backend)
 
-// ── ALARM ─────────────────────────────────────────────────────────
-function startAlarm(fruitName) {
-  if (state.alarmRunning) return;
-  state.alarmRunning = true;
-  document.getElementById("alarmStatusText").textContent = `🔥 ${fruitName} is IN STOCK — buy now!`;
-  document.getElementById("alarmStatusBar").style.display = "flex";
-  document.title = "🚨 FRUIT IN STOCK — FruitAlarm";
-  playSound();
-  state.alarmInterval = setInterval(playSound, 1800);
-}
+> Already did this before? Just UPDATE the existing files — don't create a new repo.
 
-function stopAlarm() {
-  state.alarmRunning = false;
-  clearInterval(state.alarmInterval);
-  document.getElementById("alarmStatusBar").style.display = "none";
-  document.title = "FruitAlarm — Blox Fruits Stock Notifier";
-}
+### If you already have a repo from before:
 
-function testAlarm() {
-  const btn = document.getElementById("testBtn");
-  if (state.testRunning) {
-    state.testRunning = false;
-    clearInterval(state.testInterval);
-    btn.classList.remove("ringing");
-    btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg> Test Alarm Sound`;
-  } else {
-    state.testRunning = true;
-    playSound();
-    state.testInterval = setInterval(playSound, 1800);
-    btn.classList.add("ringing");
-    btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/></svg> Stop`;
-    setTimeout(() => { if (state.testRunning) testAlarm(); }, 8000);
-  }
-}
+1. Go to **github.com** and open your `fruitalarm-backend` repository
+2. Click on **`server.js`**
+3. Click the **pencil ✏️ icon** (top right of the file view)
+4. Press `Ctrl+A` to select ALL the old code
+5. Delete it, then paste the new `server.js` code
+6. Scroll down → click **"Commit changes"** → **"Commit directly to main"** → **Confirm**
+7. Go back to repo → click **`package.json`** → pencil icon → replace code → Commit
 
-// ── SOUND & VOLUME UI ─────────────────────────────────────────────
-function selectSound(btn) {
-  document.querySelectorAll(".sound-btn").forEach(b => b.classList.remove("active"));
-  btn.classList.add("active");
-  state.soundType = btn.dataset.sound;
-  localStorage.setItem("fa_sound", state.soundType);
-  playSound();
-}
+Render.com will **auto-detect** the update and redeploy in 1-2 minutes. Done!
 
-function updateVolume(val) {
-  state.volume = val / 100;
-  document.getElementById("volVal").textContent = `${val}%`;
-  localStorage.setItem("fa_volume", state.volume);
-}
+### If you are setting up for the first time:
 
-// ── COUNTDOWN ─────────────────────────────────────────────────────
-function updateCountdown() {
-  const now   = new Date();
-  const s     = now.getUTCHours()*3600 + now.getUTCMinutes()*60 + now.getUTCSeconds();
-  const rem   = 14400 - (s % 14400);
-  const pad   = n => String(n).padStart(2,"0");
-  document.getElementById("countdown").textContent =
-    `${pad(Math.floor(rem/3600))}:${pad(Math.floor(rem%3600/60))}:${pad(rem%60)}`;
-  document.getElementById("cycleNum").textContent = Math.floor(Date.now()/1000/14400);
-  if (rem === 1) setTimeout(loadLiveStock, 3000);
-}
+1. Go to **github.com** → click green **"New"** button
+2. Repository name: `fruitalarm-backend`
+3. Keep it **Public** → click **"Create repository"**
+4. Click **"uploading an existing file"**
+5. Drag BOTH files from your `FruitAlarm/backend/` folder:
+   - `server.js`
+   - `package.json`
+6. Click **"Commit changes"**
 
-// ── BELI FORMAT ───────────────────────────────────────────────────
-function beli(n) {
-  if (n >= 1_000_000) return `🍀 ${(n/1_000_000).toFixed(1)}M`;
-  if (n >= 1_000)     return `🍀 ${Math.round(n/1000)}K`;
-  return `🍀 ${n}`;
-}
+---
 
-// ── FRUIT IMAGE ───────────────────────────────────────────────────
-// Returns an <img> element with the wiki image, falls back to a
-// colored placeholder showing the first letter if image fails.
-function fruitImg(fruit, size = 48) {
-  const rarityColors = {
-    mythical:  "#c084fc",
-    legendary: "#facc15",
-    rare:      "#60a5fa",
-    common:    "#9191a8",
-  };
-  const color = rarityColors[fruit.rarity] || "#888";
-  // We use a wrapper div; if the real image fails we show a colored circle
-  return `
-    <div class="fruit-img-wrap" style="width:${size}px;height:${size}px;">
-      <img
-        src="${fruit.img}"
-        alt="${fruit.name}"
-        width="${size}" height="${size}"
-        style="object-fit:contain;width:100%;height:100%;"
-        onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"
-        loading="lazy"
-      />
-      <div class="fruit-img-fallback" style="display:none;width:100%;height:100%;border-radius:50%;background:${color}22;border:2px solid ${color};align-items:center;justify-content:center;font-size:${Math.round(size*0.45)}px;font-weight:700;color:${color};">
-        ${fruit.name.charAt(0)}
-      </div>
-    </div>`;
-}
+## STEP 3 — Deploy on Render.com (free hosting)
 
-// ── RENDER STOCK GRID ─────────────────────────────────────────────
-function renderStock() {
-  const grid = document.getElementById("stockGrid");
-  const note = document.getElementById("stockNote");
-  grid.innerHTML = "";
+> Already deployed before? Render auto-redeploys when GitHub updates.
+> You only need to do this section ONCE ever.
 
-  if (state.currentStock.length === 0) {
-    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--text-2);font-size:13px;">Loading stock data...</div>`;
-    return;
-  }
+1. Go to **render.com** → sign in with GitHub
+2. Click **"New +"** → **"Web Service"**
+3. Connect GitHub if asked → select `fruitalarm-backend`
+4. Fill in the form:
+   - **Name:** fruitalarm-backend
+   - **Region:** Singapore *(closest to India)*
+   - **Branch:** main
+   - **Runtime:** Node
+   - **Build Command:** `npm install`
+   - **Start Command:** `node server.js`
+   - **Instance Type:** Free
+5. Click **"Create Web Service"**
+6. Wait 2-3 minutes for deploy
+7. You get a URL like: `https://fruitalarm-backend.onrender.com`
+8. **Copy that URL!**
 
-  const inIds = new Set(state.currentStock.map(f => f.id));
+---
 
-  // IN-stock cards first
-  state.currentStock.forEach(fruit => {
-    const card = document.createElement("div");
-    card.className = "fruit-card in-stock";
-    card.innerHTML = `
-      <div class="fruit-card-top">
-        ${fruitImg(fruit, 52)}
-        <span class="stock-badge in">IN</span>
-      </div>
-      <div class="fruit-name-row">
-        <span class="fruit-card-name">${fruit.name}</span>
-        <span class="rarity-pip ${fruit.rarity}">${fruit.rarity.slice(0,3).toUpperCase()}</span>
-      </div>
-      <span class="fruit-price">${beli(fruit.price)}</span>`;
-    grid.appendChild(card);
-  });
+## STEP 4 — Connect app to backend
 
-  // OUT-of-stock (dimmed, first 4 not in stock)
-  ALL_FRUITS.filter(f => !inIds.has(f.id)).slice(0, 4).forEach(fruit => {
-    const card = document.createElement("div");
-    card.className = "fruit-card";
-    card.style.opacity = "0.45";
-    card.innerHTML = `
-      <div class="fruit-card-top">
-        ${fruitImg(fruit, 52)}
-        <span class="stock-badge out">OUT</span>
-      </div>
-      <div class="fruit-name-row">
-        <span class="fruit-card-name" style="color:var(--text-3)">${fruit.name}</span>
-        <span class="rarity-pip ${fruit.rarity}" style="opacity:0.5">${fruit.rarity.slice(0,3).toUpperCase()}</span>
-      </div>
-      <span class="fruit-price" style="color:var(--text-3)">${beli(fruit.price)}</span>`;
-    grid.appendChild(card);
-  });
+1. Open `FruitAlarm/app.js` in VS Code
+2. Find **line 4**:
+   ```javascript
+   const BACKEND_URL = "https://fruitalarm-backend.onrender.com";
+   ```
+3. Replace with YOUR actual Render URL
+4. Save the file
 
-  // Source note
-  const sourceMsg = {
-    wiki:     "✅ Live data — scraped from Blox Fruits Wiki",
-    cached:   "⚠️ Cached data — scrape failed, showing last known stock",
-    fallback: "⚠️ Simulated stock — deploy backend for live data",
-    loading:  "⏳ Loading...",
-  };
-  note.textContent = state.lastUpdated
-    ? `${sourceMsg[state.stockSource] || ""} · Updated ${new Date(state.lastUpdated).toLocaleTimeString()}`
-    : sourceMsg[state.stockSource] || "";
-}
+---
 
-// ── RENDER WISHLIST ───────────────────────────────────────────────
-function renderWishlist() {
-  const container = document.getElementById("wishlistContainer");
-  container.innerHTML = "";
-  const inIds = new Set(state.currentStock.map(f => f.id));
+## STEP 5 — Test the live stock
 
-  ALL_FRUITS.forEach(fruit => {
-    const isChecked = state.wishlist.includes(fruit.id);
-    const isMatched = isChecked && inIds.has(fruit.id);
-    const item = document.createElement("div");
-    item.className = `wishlist-item${isChecked?" checked":""}${isMatched?" matched":""}`;
-    item.dataset.id = fruit.id;
-    item.innerHTML = `
-      <div class="wl-checkbox">
-        <svg class="wl-check-svg" width="10" height="10" viewBox="0 0 10 10" fill="none">
-          <path d="M2 5l2.5 2.5L8 3" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </div>
-      ${fruitImg(fruit, 32)}
-      <div class="wl-info">
-        <div class="wl-name">${fruit.name}</div>
-        <div class="wl-meta">${fruit.rarity.charAt(0).toUpperCase()+fruit.rarity.slice(1)} · ${beli(fruit.price)}</div>
-      </div>
-      <span class="wl-alert-icon">🔔</span>`;
-    item.addEventListener("click", () => toggleWishlist(fruit.id));
-    container.appendChild(item);
-  });
-}
+1. Visit your Render URL + `/stock` in browser:
+   ```
+   https://YOUR-URL.onrender.com/stock
+   ```
+2. You should see JSON like:
+   ```json
+   {
+     "normalStock": ["rocket", "spin", "diamond"],
+     "mirageStock": ["flame", "sand"],
+     "source": "fruityblox",
+     "lastUpdated": "2025-..."
+   }
+   ```
+3. If you see `"source": "fruityblox"` — it's working perfectly!
+4. If you see `"source": "fallback"` — the scraper had trouble, wait 4 hours and try again
 
-function toggleWishlist(id) {
-  const i = state.wishlist.indexOf(id);
-  if (i === -1) state.wishlist.push(id);
-  else state.wishlist.splice(i, 1);
-  localStorage.setItem("fa_wishlist", JSON.stringify(state.wishlist));
-  renderWishlist();
-  checkAlarm();
-}
+---
 
-// ── ALARM CHECK ───────────────────────────────────────────────────
-function checkAlarm() {
-  if (state.alarmRunning) return;
-  const inIds = new Set(state.currentStock.map(f => f.id));
-  for (const id of state.wishlist) {
-    if (inIds.has(id)) {
-      const fruit = ALL_FRUITS.find(f => f.id === id);
-      startAlarm(fruit?.name || "Your fruit");
-      return;
-    }
-  }
-}
+## STEP 6 — Host the website free on GitHub Pages
 
-// ── LIVE STOCK FETCH ──────────────────────────────────────────────
-// Calls your Render.com backend. Falls back to a seeded simulation
-// if the backend isn't deployed yet.
-async function loadLiveStock() {
-  const btn = document.getElementById("refreshBtn");
-  btn.classList.add("spinning");
+1. Go to GitHub → create a **new** repository called `fruitalarm` (lowercase)
+2. Upload ALL files from your `FruitAlarm/` folder:
+   - `index.html`, `style.css`, `app.js`, `fruits.js`, `icons.js`
+   - `manifest.json`, `sw.js`, `icon.svg`
+   - ⚠️ Do NOT upload the `backend/` folder
+3. Go to **Settings → Pages**
+4. Source: **"Deploy from a branch"**
+5. Branch: **main** → **/ (root)** → Save
+6. Wait 1-2 minutes
+7. Your site is live at:
+   ```
+   https://YOURUSERNAME.github.io/fruitalarm
+   ```
 
-  try {
-    const resp = await fetch(`${BACKEND_URL}/stock`, { signal: AbortSignal.timeout(8000) });
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const data = await resp.json();
+Share this link with players!
 
-    // Map fruit names from backend → our fruit objects
-    state.currentStock = data.fruits
-      .map(name => FRUIT_BY_NAME[name.toLowerCase()])
-      .filter(Boolean);
+---
 
-    state.stockSource  = data.source  || "wiki";
-    state.lastUpdated  = data.lastUpdated || new Date().toISOString();
+## STEP 7 — Keep the server awake 24/7 (important!)
 
-  } catch (err) {
-    console.warn("Backend unavailable, using simulation:", err.message);
-    // Seeded simulation so it's at least consistent across refreshes
-    state.currentStock = simulateStock();
-    state.stockSource  = "fallback";
-    state.lastUpdated  = new Date().toISOString();
-  }
+Render's free tier sleeps after 15 minutes of no traffic.
+First visit after sleep = 30 second delay.
+Fix this for free:
 
-  renderStock();
-  renderWishlist();
-  checkAlarm();
-  btn.classList.remove("spinning");
-}
+1. Go to **uptimerobot.com** → create free account
+2. Click **"Add New Monitor"**
+3. Monitor type: **HTTP(s)**
+4. Friendly name: `FruitAlarm Backend`
+5. URL: `https://YOUR-RENDER-URL.onrender.com/health`
+6. Monitoring interval: **5 minutes**
+7. Save
 
-// ── SIMULATION (fallback only) ────────────────────────────────────
-function simulateStock() {
-  const seed = Math.floor(Date.now() / 14_400_000);
-  let s = seed | 0;
-  const rng = () => { s = s + 0x6D2B79F5 | 0; let t = Math.imul(s^s>>>15,1|s); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; };
-  const pool = [...ALL_FRUITS];
-  const result = [];
-  const gates = { mythical:0.15, legendary:0.4, rare:0.8, common:1 };
-  while (result.length < 4 && pool.length) {
-    const i = Math.floor(rng()*pool.length);
-    const f = pool.splice(i,1)[0];
-    if (rng() < gates[f.rarity]) result.push(f);
-  }
-  while (result.length < 3) result.push(pool[Math.floor(rng()*pool.length)]);
-  return result;
-}
+UptimeRobot pings your server every 5 minutes → it never sleeps.
 
-function refreshStock() { loadLiveStock(); }
+---
 
-// ── INIT ──────────────────────────────────────────────────────────
-function init() {
-  // Restore sound UI
-  document.querySelectorAll(".sound-btn").forEach(b =>
-    b.classList.toggle("active", b.dataset.sound === state.soundType));
+## STEP 8 — Let players install it as an app (Android)
 
-  const vol = Math.round(state.volume * 100);
-  document.getElementById("volumeSlider").value = vol;
-  document.getElementById("volVal").textContent = `${vol}%`;
+When players visit your GitHub Pages site on Android Chrome:
+1. Tap the **3-dot menu** (top right)
+2. Tap **"Add to Home Screen"**
+3. App installs with your icon — looks exactly like a real app!
 
-  updateCountdown();
-  setInterval(updateCountdown, 1000);
+---
 
-  loadLiveStock();
-}
+## Troubleshooting
 
-document.addEventListener("DOMContentLoaded", init);
+| Problem | Fix |
+|---|---|
+| Stock shows "Backend not deployed" | Complete Steps 2-4 above |
+| Stock shows "Cached" not "fruityblox" | FruityBlox page changed — visit `/force-refresh` on your Render URL |
+| Alarm doesn't ring | You must click something first (browser rule). Use the Test button |
+| Images not showing | Normal — icons are code-generated, no external images needed |
+| Render URL gives error | Wait 2-3 min after deploy, then try again |
+
+---
+
+## Force a manual stock refresh
+
+If stock looks wrong, visit this in your browser:
+```
+https://YOUR-RENDER-URL.onrender.com/force-refresh
+```
+Then wait 5 seconds and refresh your app.
+
+---
+
+## Revenue Plan
+
+Once you have real users visiting the site:
+
+1. Sign up at **adsense.google.com**
+2. Add the AdSense script to `index.html` (5 minutes)
+3. Ads show on your website → earn per visit
+4. Goal: ₹2,100 ($25) → publish to Google Play Store
+
+---
+
+## Quick Checklist Before Sharing
+
+- [ ] Backend deployed on Render.com
+- [ ] `/stock` endpoint returns `"source": "fruityblox"`
+- [ ] `BACKEND_URL` in `app.js` points to your Render URL
+- [ ] Website live on GitHub Pages
+- [ ] UptimeRobot keeping server awake
+- [ ] Test alarm plays sound
+- [ ] Wishlist saves when you refresh
+
