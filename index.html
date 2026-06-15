@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#0a0a0f" />
-  <meta name="description" content="Never miss a rare Blox Fruits stock again. Real-time alerts for Kitsune, Dragon, Leopard and more." />
+  <meta name="description" content="Never miss a rare Blox Fruits stock. Real-time alerts for Kitsune, Dragon, Leopard and more." />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="FruitAlarm" />
@@ -15,111 +15,127 @@
 </head>
 <body>
 
-  <!-- ===== HEADER ===== -->
+  <!-- fallback image template (used by JS onerror) -->
+  <template id="fbTpl"><span class="fb"></span></template>
+
+  <!-- ── HEADER ── -->
   <header class="app-header">
-    <div class="header-left">
-      <div class="app-logo">
-        <img src="icon.svg" alt="FruitAlarm logo" width="36" height="36" />
-        <div>
-          <span class="app-name">FruitAlarm</span>
-          <span class="app-sub">Blox Fruits · Stock Notifier</span>
-        </div>
+    <div class="app-logo">
+      <div class="logo-icon">🍈</div>
+      <div>
+        <span class="app-name">FruitAlarm</span>
+        <span class="app-sub">Blox Fruits · Stock Notifier</span>
       </div>
     </div>
-    <div class="header-right">
-      <div class="live-badge" id="liveBadge">
-        <span class="live-dot"></span>
-        <span>LIVE</span>
-      </div>
+    <div class="live-badge">
+      <span class="live-dot"></span>LIVE
     </div>
   </header>
 
-  <!-- ===== RESET TIMER BANNER ===== -->
-  <div class="timer-banner">
-    <div class="timer-left">
-      <span class="timer-label">Next stock reset in</span>
-      <span class="timer-value" id="countdown">--:--:--</span>
-    </div>
-    <div class="timer-right">
-      <span class="timer-label">Stock cycle</span>
-      <span class="timer-value">#<span id="cycleNum">—</span></span>
-    </div>
-  </div>
-
-  <!-- ===== ALARM STATUS BAR ===== -->
-  <div class="alarm-status-bar" id="alarmStatusBar" style="display:none;">
-    <span class="alarm-status-icon">🚨</span>
-    <span id="alarmStatusText">Wishlist fruit is in stock!</span>
+  <!-- ── ALARM STATUS BAR (hidden until triggered) ── -->
+  <div class="alarm-status-bar" id="alarmStatusBar" style="display:none">
+    <span>🚨</span>
+    <span id="alarmStatusText">Fruit in stock!</span>
     <button class="alarm-stop-btn" onclick="stopAlarm()">Stop</button>
   </div>
 
-  <!-- ===== MAIN CONTENT ===== -->
+  <!-- ── TIMERS ── -->
+  <div class="timer-row">
+    <div class="timer-box">
+      <span class="timer-label">Normal reset</span>
+      <span class="timer-value" id="countdownNormal">--:--:--</span>
+    </div>
+    <div class="timer-divider"></div>
+    <div class="timer-box">
+      <span class="timer-label">Mirage reset</span>
+      <span class="timer-value" id="countdownMirage">--:--:--</span>
+    </div>
+  </div>
+
   <main>
 
-    <!-- CURRENT STOCK -->
+    <!-- ── STOCK SECTION ── -->
     <section class="section">
       <div class="section-header">
         <h2 class="section-title">Current Stock</h2>
         <button class="refresh-btn" id="refreshBtn" onclick="refreshStock()">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
           Refresh
         </button>
       </div>
-      <div class="stock-grid" id="stockGrid">
-        <!-- filled by JS -->
+
+      <!-- Stock type tabs -->
+      <div class="stock-tabs">
+        <button class="stock-tab active" data-tab="normal" onclick="switchTab('normal')">
+          <span class="tab-dot normal-dot"></span> Normal Dealer
+        </button>
+        <button class="stock-tab" data-tab="mirage" onclick="switchTab('mirage')">
+          <span class="tab-dot mirage-dot"></span> Mirage Island
+        </button>
       </div>
-      <p class="stock-note" id="stockNote">Showing simulated stock. Connect a real API for live data.</p>
+
+      <!-- Normal stock grid -->
+      <div id="normalStockSection">
+        <div class="stock-grid" id="normalStockGrid"></div>
+      </div>
+
+      <!-- Mirage stock grid -->
+      <div id="mirageStockSection" style="display:none">
+        <div class="mirage-notice">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4m0-4h.01"/></svg>
+          Mirage Island spawns randomly in Third Sea. Stock refreshes every 2 hours.
+        </div>
+        <div class="stock-grid" id="mirageStockGrid"></div>
+      </div>
+
+      <p class="stock-note" id="stockNote">Loading...</p>
     </section>
 
-    <!-- DIVIDER -->
     <div class="section-divider"></div>
 
-    <!-- WISHLIST -->
+    <!-- ── WISHLIST ── -->
     <section class="section">
       <div class="section-header">
         <h2 class="section-title">My Wishlist</h2>
-        <span class="section-sub">Alarm triggers when these appear</span>
+        <span class="section-sub">Tap a fruit to watch it</span>
       </div>
-      <div class="wishlist-list" id="wishlistContainer">
-        <!-- filled by JS -->
-      </div>
+      <div class="wishlist-list" id="wishlistContainer"></div>
     </section>
 
-    <!-- DIVIDER -->
     <div class="section-divider"></div>
 
-    <!-- ALARM SETTINGS -->
+    <!-- ── ALARM SETTINGS ── -->
     <section class="section">
-      <h2 class="section-title">Alarm Settings</h2>
+      <h2 class="section-title" style="margin-bottom:16px">Alarm Settings</h2>
 
+      <!-- Alert mode -->
       <div class="setting-group">
-        <label class="setting-label">Alarm sound</label>
-        <div class="sound-options" id="soundOptions">
-          <button class="sound-btn active" data-sound="beep" onclick="selectSound(this)">
-            <span class="sound-icon">🔔</span>
-            <span class="sound-name">Classic beep</span>
-          </button>
-          <button class="sound-btn" data-sound="siren" onclick="selectSound(this)">
-            <span class="sound-icon">🚨</span>
-            <span class="sound-name">Rising siren</span>
-          </button>
-          <button class="sound-btn" data-sound="rapid" onclick="selectSound(this)">
-            <span class="sound-icon">⚡</span>
-            <span class="sound-name">Rapid urgent</span>
-          </button>
-          <button class="sound-btn" data-sound="chime" onclick="selectSound(this)">
-            <span class="sound-icon">🎵</span>
-            <span class="sound-name">Soft chime</span>
-          </button>
+        <label class="setting-label">Alert me when fruit appears in</label>
+        <div class="mode-btns">
+          <button class="mode-btn active" data-mode="both"   onclick="setAlarmMode('both')">Both stocks</button>
+          <button class="mode-btn"        data-mode="normal" onclick="setAlarmMode('normal')">Normal only</button>
+          <button class="mode-btn"        data-mode="mirage" onclick="setAlarmMode('mirage')">Mirage only</button>
         </div>
       </div>
 
+      <!-- Sound -->
+      <div class="setting-group">
+        <label class="setting-label">Alarm sound</label>
+        <div class="sound-options">
+          <button class="sound-btn active" data-sound="beep"  onclick="selectSound(this)"><span class="sound-icon">🔔</span><span class="sound-name">Classic</span></button>
+          <button class="sound-btn"        data-sound="siren" onclick="selectSound(this)"><span class="sound-icon">🚨</span><span class="sound-name">Siren</span></button>
+          <button class="sound-btn"        data-sound="rapid" onclick="selectSound(this)"><span class="sound-icon">⚡</span><span class="sound-name">Rapid</span></button>
+          <button class="sound-btn"        data-sound="chime" onclick="selectSound(this)"><span class="sound-icon">🎵</span><span class="sound-name">Chime</span></button>
+        </div>
+      </div>
+
+      <!-- Volume -->
       <div class="setting-group">
         <label class="setting-label">Volume</label>
         <div class="volume-row">
-          <span class="vol-icon">🔈</span>
+          <span>🔈</span>
           <input type="range" id="volumeSlider" min="0" max="100" value="80" class="vol-slider" oninput="updateVolume(this.value)" />
-          <span class="vol-icon">🔊</span>
+          <span>🔊</span>
           <span class="vol-val" id="volVal">80%</span>
         </div>
       </div>
@@ -128,22 +144,26 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
         Test Alarm Sound
       </button>
+
+      <!-- Push notification notice -->
+      <div class="push-notice">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4m0-4h.01"/></svg>
+        <span>To get notified when your phone is locked, keep this tab open in Chrome. The alarm only fires while the browser is running. Push notifications (which work when locked) are coming in v2.</span>
+      </div>
     </section>
 
   </main>
 
-  <!-- ===== FOOTER ===== -->
   <footer class="app-footer">
-    <p>FruitAlarm is fan-made and not affiliated with Roblox or Blox Fruits.</p>
-    <p>Add this page to your Home Screen for the best experience.</p>
+    <p>FruitAlarm is a fan project. Not affiliated with Roblox or Blox Fruits.</p>
+    <p>Add to Home Screen in Chrome for the best experience.</p>
   </footer>
 
+  <script src="fruits.js"></script>
+  <script src="icons.js"></script>
   <script src="app.js"></script>
   <script>
-    // Register service worker (enables PWA install + offline)
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("sw.js").catch(console.warn);
-    }
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
   </script>
 </body>
 </html>
