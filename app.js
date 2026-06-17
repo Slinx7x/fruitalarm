@@ -406,6 +406,7 @@ function init() {
   switchTab("normal");
   updateCountdown();
   setInterval(updateCountdown, 1000);
+  setInterval(loadLiveStock, 2 * 60 * 1000);
   loadLiveStock();
 
   // Restore push state
