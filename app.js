@@ -14,7 +14,7 @@ const FIREBASE_CONFIG = {
 };
 
 // ← Paste your VAPID key from Firebase here between the quotes
-const VAPID_KEY = "YOUR_VAPID_KEY_HERE";
+const VAPID_KEY = "BJulZkALQHCmLXSOA56PL0WlL0OPx0YSs9dWX_AVVioBi7WcwPVP8xnlyQZG1PexC78ba5avrHa97zczG1N6Uu0";
 
 // ── APP STATE ─────────────────────────────────────────────────────
 const state = {
