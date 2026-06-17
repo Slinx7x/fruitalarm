@@ -1,210 +1,486 @@
-# FruitAlarm — Complete Setup Guide
-### Blox Fruits Stock Notifier | Fan Project
+// ================================================================
+//  FruitAlarm — app.js v5
+//  Uses fruits.js (verified 41 fruits) + icons.js (SVG icons)
+// ================================================================
 
----
+const BACKEND_URL = "https://fruitalarm-backend.onrender.com";
 
-## Your File Structure
+// ── APP STATE ─────────────────────────────────────────────────────
+const state = {
+  wishlist:     JSON.parse(localStorage.getItem("fa_wishlist") || "[]"),
+  soundType:    localStorage.getItem("fa_sound")     || "beep",
+  volume:       parseFloat(localStorage.getItem("fa_volume")   || "0.8"),
+  alarmMode:    localStorage.getItem("fa_alarmMode") || "both",
+  activeTab:    "normal",
+  normalStock:  [],
+  mirageStock:  [],
+  stockSource:  "loading",
+  lastUpdated:  null,
+  alarmRunning: false,
+  alarmInterval:null,
+  audioCtx:     null,
+  testRunning:  false,
+  testInterval: null,
+};
 
-```
-FruitAlarm/
-├── index.html       ← The app (open this in browser)
-├── style.css        ← Dark theme styling
-├── app.js           ← App brain — alarm, wishlist, UI
-├── fruits.js        ← All 41 verified fruits + prices
-├── icons.js         ← SVG icons for every fruit
-├── manifest.json    ← Makes it installable on Android
-├── sw.js            ← Offline support
-├── icon.svg         ← App icon
-│
-└── backend/
-    ├── server.js    ← Stock bot (scrapes FruityBlox every 2-4 hrs)
-    └── package.json ← Backend config
-```
+// ── AUDIO ─────────────────────────────────────────────────────────
+function getCtx() {
+  if (!state.audioCtx || state.audioCtx.state === "closed")
+    state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return state.audioCtx;
+}
+function tone(ctx, freq, t0, dur, type = "sine") {
+  const o = ctx.createOscillator(), g = ctx.createGain();
+  o.connect(g); g.connect(ctx.destination);
+  o.type = type;
+  o.frequency.setValueAtTime(freq, t0);
+  g.gain.setValueAtTime(state.volume * 0.35, t0);
+  g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+  o.start(t0); o.stop(t0 + dur);
+}
+const SOUNDS = {
+  beep:  c => { const t=c.currentTime; tone(c,880,t,0.18,"square"); tone(c,880,t+0.22,0.18,"square"); tone(c,660,t+0.55,0.18,"square"); tone(c,660,t+0.77,0.18,"square"); },
+  siren: c => { const t=c.currentTime,o=c.createOscillator(),g=c.createGain(); o.connect(g);g.connect(c.destination);o.type="sawtooth";o.frequency.setValueAtTime(300,t);o.frequency.linearRampToValueAtTime(1200,t+0.8);g.gain.setValueAtTime(state.volume*0.25,t);g.gain.linearRampToValueAtTime(0.001,t+0.85);o.start(t);o.stop(t+0.9); },
+  rapid: c => { const t=c.currentTime; for(let i=0;i<6;i++) tone(c,1200,t+i*0.12,0.08,"square"); },
+  chime: c => { const t=c.currentTime; [523,659,784,1047].forEach((f,i)=>tone(c,f,t+i*0.18,0.4)); },
+};
+function playSound() {
+  const c = getCtx();
+  if (c.state === "suspended") c.resume();
+  (SOUNDS[state.soundType] || SOUNDS.beep)(c);
+}
 
----
+// ── ALARM ─────────────────────────────────────────────────────────
+function startAlarm(fruitName, stockType) {
+  if (state.alarmRunning) return;
+  state.alarmRunning = true;
+  const label = stockType === "mirage" ? "Mirage Stock" : "Normal Stock";
+  document.getElementById("alarmStatusText").textContent = `${fruitName} is in ${label} — buy now!`;
+  document.getElementById("alarmStatusBar").style.display = "flex";
+  document.title = "🚨 FRUIT IN STOCK — FruitAlarm";
+  playSound();
+  state.alarmInterval = setInterval(playSound, 1800);
+}
+function stopAlarm() {
+  state.alarmRunning = false;
+  clearInterval(state.alarmInterval);
+  document.getElementById("alarmStatusBar").style.display = "none";
+  document.title = "FruitAlarm — Blox Fruits Stock Notifier";
+}
+function testAlarm() {
+  const btn = document.getElementById("testBtn");
+  if (state.testRunning) {
+    state.testRunning = false;
+    clearInterval(state.testInterval);
+    btn.classList.remove("ringing");
+    btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg> Test Alarm`;
+  } else {
+    state.testRunning = true;
+    playSound();
+    state.testInterval = setInterval(playSound, 1800);
+    btn.classList.add("ringing");
+    btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/></svg> Stop`;
+    setTimeout(() => { if (state.testRunning) testAlarm(); }, 8000);
+  }
+}
 
-## STEP 1 — Test locally on your laptop
+// ── SOUND & VOLUME ────────────────────────────────────────────────
+function selectSound(btn) {
+  document.querySelectorAll(".sound-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  state.soundType = btn.dataset.sound;
+  localStorage.setItem("fa_sound", state.soundType);
+  playSound();
+}
+function updateVolume(val) {
+  state.volume = val / 100;
+  document.getElementById("volVal").textContent = `${val}%`;
+  localStorage.setItem("fa_volume", state.volume);
+}
 
-1. Open VS Code → open your `FruitAlarm` folder
-2. Right-click `index.html` → **Open with Live Server**
-   - No Live Server? Press `Ctrl+Shift+X` → search "Live Server" → Install
-3. App opens in Chrome
-4. Stock shows "Backend not deployed yet" — that's correct for now
-5. Test the alarm button, wishlist checkboxes, and countdown timer
+// ── ALARM MODE ────────────────────────────────────────────────────
+function setAlarmMode(mode) {
+  state.alarmMode = mode;
+  localStorage.setItem("fa_alarmMode", mode);
+  document.querySelectorAll(".mode-btn").forEach(b =>
+    b.classList.toggle("active", b.dataset.mode === mode));
+  checkAlarm();
+}
 
----
+// ── COUNTDOWN ─────────────────────────────────────────────────────
+function updateCountdown() {
+  const s   = new Date();
+  const sec = s.getUTCHours()*3600 + s.getUTCMinutes()*60 + s.getUTCSeconds();
+  const pad = n => String(n).padStart(2, "0");
+  const remN = 14400 - (sec % 14400);
+  const remM = 7200  - (sec % 7200);
+  document.getElementById("countdownNormal").textContent =
+    `${pad(Math.floor(remN/3600))}:${pad(Math.floor(remN%3600/60))}:${pad(remN%60)}`;
+  document.getElementById("countdownMirage").textContent =
+    `${pad(Math.floor(remM/3600))}:${pad(Math.floor(remM%3600/60))}:${pad(remM%60)}`;
+  if (remN === 1) setTimeout(loadLiveStock, 3000);
+}
 
-## STEP 2 — Update your GitHub repo (backend)
+// ── FORMAT HELPERS ────────────────────────────────────────────────
+function fmtBeli(n) {
+  if (n >= 1_000_000) return `${(n/1_000_000).toFixed(n%1_000_000===0?0:1)}M`;
+  if (n >= 1_000)     return `${Math.round(n/1000)}K`;
+  return n.toLocaleString();
+}
 
-> Already did this before? Just UPDATE the existing files — don't create a new repo.
+// ── TAB SWITCHING ─────────────────────────────────────────────────
+function switchTab(tab) {
+  state.activeTab = tab;
+  document.querySelectorAll(".stock-tab").forEach(t =>
+    t.classList.toggle("active", t.dataset.tab === tab));
+  document.getElementById("normalStockSection").style.display = tab === "normal" ? "block" : "none";
+  document.getElementById("mirageStockSection").style.display = tab === "mirage" ? "block" : "none";
+}
 
-### If you already have a repo from before:
+// ── RENDER STOCK GRID ─────────────────────────────────────────────
+function renderStockGrid(gridId, inStockFruits, label) {
+  const grid = document.getElementById(gridId);
+  if (!grid) return;
+  grid.innerHTML = "";
 
-1. Go to **github.com** and open your `fruitalarm-backend` repository
-2. Click on **`server.js`**
-3. Click the **pencil ✏️ icon** (top right of the file view)
-4. Press `Ctrl+A` to select ALL the old code
-5. Delete it, then paste the new `server.js` code
-6. Scroll down → click **"Commit changes"** → **"Commit directly to main"** → **Confirm**
-7. Go back to repo → click **`package.json`** → pencil icon → replace code → Commit
+  if (inStockFruits.length === 0) {
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:28px 16px;color:var(--text-2);font-size:13px;line-height:1.8;">
+      ${state.stockSource === "loading" || state.stockSource === "pending"
+        ? `<div style="font-size:22px;margin-bottom:8px">⏳</div>Fetching live stock...`
+        : `<div style="font-size:22px;margin-bottom:8px">🔴</div>
+           <strong style="color:var(--text-1)">Backend not deployed yet</strong><br>
+           <span style="font-size:11px;color:var(--text-3)">Open README.md and follow Step 2 to connect the live stock bot.<br>Once deployed, this will show real fruits from FruityBlox.</span>`}
+    </div>`;
+    return;
+  }
 
-Render.com will **auto-detect** the update and redeploy in 1-2 minutes. Done!
+  const inIds = new Set(inStockFruits.map(f => f.id));
 
-### If you are setting up for the first time:
+  // IN stock cards
+  inStockFruits.forEach(fruit => {
+    const card = document.createElement("div");
+    card.className = "fruit-card in-stock";
+    card.innerHTML = `
+      <div class="fruit-card-top">
+        ${getFruitIcon(fruit, 52)}
+        <span class="stock-badge in">IN</span>
+      </div>
+      <div class="fruit-name-row">
+        <span class="fruit-card-name">${fruit.name}</span>
+        <span class="rarity-pip ${fruit.rarity}">${fruit.rarity.slice(0,3).toUpperCase()}</span>
+      </div>
+      <div class="fruit-prices">
+        <span class="price-beli">🍀 ${fmtBeli(fruit.beli)}</span>
+        <span class="price-robux">R$ ${fruit.robux.toLocaleString()}</span>
+      </div>`;
+    grid.appendChild(card);
+  });
 
-1. Go to **github.com** → click green **"New"** button
-2. Repository name: `fruitalarm-backend`
-3. Keep it **Public** → click **"Create repository"**
-4. Click **"uploading an existing file"**
-5. Drag BOTH files from your `FruitAlarm/backend/` folder:
-   - `server.js`
-   - `package.json`
-6. Click **"Commit changes"**
+  // OUT of stock (first 4, dimmed)
+  ALL_FRUITS.filter(f => !inIds.has(f.id)).slice(0, 4).forEach(fruit => {
+    const card = document.createElement("div");
+    card.className = "fruit-card out-stock";
+    card.innerHTML = `
+      <div class="fruit-card-top">
+        <div style="opacity:0.35">${getFruitIcon(fruit, 52)}</div>
+        <span class="stock-badge out">OUT</span>
+      </div>
+      <div class="fruit-name-row">
+        <span class="fruit-card-name" style="color:var(--text-3)">${fruit.name}</span>
+        <span class="rarity-pip ${fruit.rarity}" style="opacity:0.4">${fruit.rarity.slice(0,3).toUpperCase()}</span>
+      </div>
+      <div class="fruit-prices">
+        <span class="price-beli" style="color:var(--text-3)">🍀 ${fmtBeli(fruit.beli)}</span>
+      </div>`;
+    grid.appendChild(card);
+  });
+}
 
----
+// ── RENDER WISHLIST ───────────────────────────────────────────────
+function renderWishlist() {
+  const container = document.getElementById("wishlistContainer");
+  if (!container) return;
+  container.innerHTML = "";
+  const normalIds = new Set(state.normalStock.map(f => f.id));
+  const mirageIds = new Set(state.mirageStock.map(f => f.id));
 
-## STEP 3 — Deploy on Render.com (free hosting)
+  ALL_FRUITS.forEach(fruit => {
+    const isChecked = state.wishlist.includes(fruit.id);
+    const inNormal  = normalIds.has(fruit.id);
+    const inMirage  = mirageIds.has(fruit.id);
+    const isMatched = isChecked && (inNormal || inMirage);
 
-> Already deployed before? Render auto-redeploys when GitHub updates.
-> You only need to do this section ONCE ever.
+    let stockTags = "";
+    if (inNormal) stockTags += `<span class="wl-stock-tag normal">Normal</span>`;
+    if (inMirage) stockTags += `<span class="wl-stock-tag mirage">Mirage</span>`;
 
-1. Go to **render.com** → sign in with GitHub
-2. Click **"New +"** → **"Web Service"**
-3. Connect GitHub if asked → select `fruitalarm-backend`
-4. Fill in the form:
-   - **Name:** fruitalarm-backend
-   - **Region:** Singapore *(closest to India)*
-   - **Branch:** main
-   - **Runtime:** Node
-   - **Build Command:** `npm install`
-   - **Start Command:** `node server.js`
-   - **Instance Type:** Free
-5. Click **"Create Web Service"**
-6. Wait 2-3 minutes for deploy
-7. You get a URL like: `https://fruitalarm-backend.onrender.com`
-8. **Copy that URL!**
+    const item = document.createElement("div");
+    item.className = `wishlist-item${isChecked?" checked":""}${isMatched?" matched":""}`;
+    item.dataset.id = fruit.id;
+    item.innerHTML = `
+      <div class="wl-checkbox">
+        <svg class="wl-check-svg" width="10" height="10" viewBox="0 0 10 10" fill="none">
+          <path d="M2 5l2.5 2.5L8 3" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div style="flex-shrink:0">${getFruitIcon(fruit, 36)}</div>
+      <div class="wl-info">
+        <div class="wl-name">${fruit.name}${stockTags}</div>
+        <div class="wl-meta">${fruit.rarity.charAt(0).toUpperCase()+fruit.rarity.slice(1)} · ${fruit.type} · 🍀 ${fmtBeli(fruit.beli)}</div>
+      </div>
+      <span class="wl-alert-icon" style="${isMatched?"":"display:none"}">🔔</span>`;
+    item.addEventListener("click", () => toggleWishlist(fruit.id));
+    container.appendChild(item);
+  });
+}
 
----
+function toggleWishlist(id) {
+  const i = state.wishlist.indexOf(id);
+  if (i === -1) state.wishlist.push(id); else state.wishlist.splice(i, 1);
+  localStorage.setItem("fa_wishlist", JSON.stringify(state.wishlist));
+  renderWishlist();
+  checkAlarm();
+}
 
-## STEP 4 — Connect app to backend
+// ── ALARM CHECK ───────────────────────────────────────────────────
+function checkAlarm() {
+  if (state.alarmRunning) return;
+  const mode      = state.alarmMode;
+  const normalIds = new Set(state.normalStock.map(f => f.id));
+  const mirageIds = new Set(state.mirageStock.map(f => f.id));
+  for (const id of state.wishlist) {
+    if ((mode === "both" || mode === "normal") && normalIds.has(id)) {
+      startAlarm(ALL_FRUITS.find(f=>f.id===id)?.name||id, "normal"); return;
+    }
+    if ((mode === "both" || mode === "mirage") && mirageIds.has(id)) {
+      startAlarm(ALL_FRUITS.find(f=>f.id===id)?.name||id, "mirage"); return;
+    }
+  }
+}
 
-1. Open `FruitAlarm/app.js` in VS Code
-2. Find **line 4**:
-   ```javascript
-   const BACKEND_URL = "https://fruitalarm-backend.onrender.com";
-   ```
-3. Replace with YOUR actual Render URL
-4. Save the file
+// ── LIVE STOCK FETCH ──────────────────────────────────────────────
+async function loadLiveStock() {
+  const btn = document.getElementById("refreshBtn");
+  if (btn) btn.classList.add("spinning");
 
----
+  try {
+    const resp = await fetch(`${BACKEND_URL}/stock`, { signal: AbortSignal.timeout(8000) });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
 
-## STEP 5 — Test the live stock
+    // Backend sends fruit IDs (lowercase slugs) — map to our fruit objects
+    state.normalStock = (data.normalStock || [])
+      .map(id => FRUIT_BY_NAME[id.toLowerCase().replace(/-/g,"")
+        ] || FRUIT_BY_NAME[id.toLowerCase()]).filter(Boolean);
+    state.mirageStock = (data.mirageStock || [])
+      .map(id => FRUIT_BY_NAME[id.toLowerCase().replace(/-/g,"")
+        ] || FRUIT_BY_NAME[id.toLowerCase()]).filter(Boolean);
+    state.stockSource = data.source || "fruityblox";
+    state.lastUpdated = data.lastUpdated || new Date().toISOString();
 
-1. Visit your Render URL + `/stock` in browser:
-   ```
-   https://YOUR-URL.onrender.com/stock
-   ```
-2. You should see JSON like:
-   ```json
-   {
-     "normalStock": ["rocket", "spin", "diamond"],
-     "mirageStock": ["flame", "sand"],
-     "source": "fruityblox",
-     "lastUpdated": "2025-..."
-   }
-   ```
-3. If you see `"source": "fruityblox"` — it's working perfectly!
-4. If you see `"source": "fallback"` — the scraper had trouble, wait 4 hours and try again
+  } catch (err) {
+    console.warn("Backend unavailable:", err.message);
+    // No fake fruits — show empty with clear message
+    state.normalStock = [];
+    state.mirageStock = [];
+    state.stockSource = "offline";
+    state.lastUpdated = new Date().toISOString();
+  }
 
----
+  // Source status message
+  const srcMsg = {
+    fruityblox: "✅ Live data from FruityBlox",
+    cached:     "⚠️ Cached — scrape failed, showing last known stock",
+    fallback:   "⚠️ Backend returned minimal fallback",
+    offline:    "🔴 Backend not deployed yet — follow README Step 2 to go live",
+  };
+  const note = document.getElementById("stockNote");
+  if (note) {
+    const time = state.lastUpdated ? ` · ${new Date(state.lastUpdated).toLocaleTimeString()}` : "";
+    note.textContent = `${srcMsg[state.stockSource] || state.stockSource}${time}`;
+    note.style.color = state.stockSource === "fruityblox" ? "var(--green)" : "var(--text-3)";
+  }
 
-## STEP 6 — Host the website free on GitHub Pages
+  renderStockGrid("normalStockGrid", state.normalStock, "Normal");
+  renderStockGrid("mirageStockGrid", state.mirageStock, "Mirage");
+  renderWishlist();
+  checkAlarm();
+  if (btn) btn.classList.remove("spinning");
+}
 
-1. Go to GitHub → create a **new** repository called `fruitalarm` (lowercase)
-2. Upload ALL files from your `FruitAlarm/` folder:
-   - `index.html`, `style.css`, `app.js`, `fruits.js`, `icons.js`
-   - `manifest.json`, `sw.js`, `icon.svg`
-   - ⚠️ Do NOT upload the `backend/` folder
-3. Go to **Settings → Pages**
-4. Source: **"Deploy from a branch"**
-5. Branch: **main** → **/ (root)** → Save
-6. Wait 1-2 minutes
-7. Your site is live at:
-   ```
-   https://YOURUSERNAME.github.io/fruitalarm
-   ```
+function refreshStock() { loadLiveStock(); }
 
-Share this link with players!
+// ── INIT ──────────────────────────────────────────────────────────
+function init() {
+  document.querySelectorAll(".sound-btn").forEach(b =>
+    b.classList.toggle("active", b.dataset.sound === state.soundType));
+  const vol = Math.round(state.volume * 100);
+  document.getElementById("volumeSlider").value = vol;
+  document.getElementById("volVal").textContent = `${vol}%`;
+  document.querySelectorAll(".mode-btn").forEach(b =>
+    b.classList.toggle("active", b.dataset.mode === state.alarmMode));
+  switchTab("normal");
+  updateCountdown();
+  setInterval(updateCountdown, 1000);
+  loadLiveStock();
+}
 
----
+document.addEventListener("DOMContentLoaded", init);
 
-## STEP 7 — Keep the server awake 24/7 (important!)
+// ================================================================
+//  PUSH NOTIFICATIONS — Firebase Cloud Messaging
+// ================================================================
 
-Render's free tier sleeps after 15 minutes of no traffic.
-First visit after sleep = 30 second delay.
-Fix this for free:
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyBPbVv3fEpBdu_tFWQFvJ-0V_Q5BpAIAc0",
+  authDomain:        "fruitalarm.firebaseapp.com",
+  projectId:         "fruitalarm",
+  storageBucket:     "fruitalarm.firebasestorage.app",
+  messagingSenderId: "816625926759",
+  appId:             "1:816625926759:web:7142c3e01f87b9a1d30ac2",
+};
 
-1. Go to **uptimerobot.com** → create free account
-2. Click **"Add New Monitor"**
-3. Monitor type: **HTTP(s)**
-4. Friendly name: `FruitAlarm Backend`
-5. URL: `https://YOUR-RENDER-URL.onrender.com/health`
-6. Monitoring interval: **5 minutes**
-7. Save
+// Your VAPID key from Firebase Console → Project Settings → Cloud Messaging
+const VAPID_KEY = process.env.FIREBASE_VAPID_KEY ||
+  "BJulZkALQHCmLXSOA56PL0WlL0OPx0YSs9dWX_AVVioBi7WcwPVP8xnlyQZG1PexC78ba5avrHa97zczG1N6Uu0"; // ← replace this after deploy
 
-UptimeRobot pings your server every 5 minutes → it never sleeps.
+let firebaseApp  = null;
+let fcmMessaging = null;
 
----
+async function initFirebase() {
+  try {
+    // Dynamically load Firebase SDK
+    const { initializeApp }  = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
+    const { getMessaging, getToken, onMessage } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging.js");
 
-## STEP 8 — Let players install it as an app (Android)
+    firebaseApp  = initializeApp(FIREBASE_CONFIG);
+    fcmMessaging = getMessaging(firebaseApp);
 
-When players visit your GitHub Pages site on Android Chrome:
-1. Tap the **3-dot menu** (top right)
-2. Tap **"Add to Home Screen"**
-3. App installs with your icon — looks exactly like a real app!
+    // Handle foreground messages (app is open)
+    onMessage(fcmMessaging, payload => {
+      console.log("Foreground message:", payload);
+      const { title, body } = payload.notification || {};
+      if (title) showInAppNotification(title, body);
+    });
 
----
+    return { getToken, messaging: fcmMessaging };
+  } catch(e) {
+    console.warn("Firebase init failed:", e.message);
+    return null;
+  }
+}
 
-## Troubleshooting
+// Show a banner inside the app for foreground messages
+function showInAppNotification(title, body) {
+  const bar = document.getElementById("alarmStatusBar");
+  const txt = document.getElementById("alarmStatusText");
+  if (bar && txt) {
+    txt.textContent = title;
+    bar.style.display = "flex";
+    playSound();
+    state.alarmRunning = true;
+    state.alarmInterval = setInterval(playSound, 1800);
+  }
+}
 
-| Problem | Fix |
-|---|---|
-| Stock shows "Backend not deployed" | Complete Steps 2-4 above |
-| Stock shows "Cached" not "fruityblox" | FruityBlox page changed — visit `/force-refresh` on your Render URL |
-| Alarm doesn't ring | You must click something first (browser rule). Use the Test button |
-| Images not showing | Normal — icons are code-generated, no external images needed |
-| Render URL gives error | Wait 2-3 min after deploy, then try again |
+// Request notification permission and get FCM token
+async function enablePushNotifications() {
+  const btn = document.getElementById("pushBtn");
+  if (btn) { btn.disabled = true; btn.textContent = "Setting up..."; }
 
----
+  try {
+    // 1. Ask permission
+    const permission = await Notification.requestPermission();
+    if (permission !== "granted") {
+      alert("Notifications blocked. Please allow notifications in your browser settings.");
+      if (btn) { btn.disabled = false; btn.textContent = "Enable Push Notifications"; }
+      return;
+    }
 
-## Force a manual stock refresh
+    // 2. Init Firebase
+    const firebase = await initFirebase();
+    if (!firebase) throw new Error("Firebase failed to load");
 
-If stock looks wrong, visit this in your browser:
-```
-https://YOUR-RENDER-URL.onrender.com/force-refresh
-```
-Then wait 5 seconds and refresh your app.
+    // 3. Register service worker
+    const reg = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
 
----
+    // 4. Get FCM token
+    const token = await firebase.getToken(firebase.messaging, {
+      vapidKey:          VAPID_KEY,
+      serviceWorkerRegistration: reg,
+    });
 
-## Revenue Plan
+    if (!token) throw new Error("No FCM token received");
 
-Once you have real users visiting the site:
+    // 5. Send token + wishlist + alarmMode to backend
+    await syncSubscription(token);
 
-1. Sign up at **adsense.google.com**
-2. Add the AdSense script to `index.html` (5 minutes)
-3. Ads show on your website → earn per visit
-4. Goal: ₹2,100 ($25) → publish to Google Play Store
+    // Save token locally
+    localStorage.setItem("fa_fcm_token", token);
 
----
+    // Update UI
+    updatePushUI(true);
+    console.log("✅ Push notifications enabled");
 
-## Quick Checklist Before Sharing
+  } catch(e) {
+    console.error("Push setup failed:", e.message);
+    alert(`Push notifications failed: ${e.message}`);
+    if (btn) { btn.disabled = false; btn.textContent = "Enable Push Notifications"; }
+  }
+}
 
-- [ ] Backend deployed on Render.com
-- [ ] `/stock` endpoint returns `"source": "fruityblox"`
-- [ ] `BACKEND_URL` in `app.js` points to your Render URL
-- [ ] Website live on GitHub Pages
-- [ ] UptimeRobot keeping server awake
-- [ ] Test alarm plays sound
-- [ ] Wishlist saves when you refresh
+// Send subscription info to backend
+async function syncSubscription(token) {
+  const t = token || localStorage.getItem("fa_fcm_token");
+  if (!t) return;
+  try {
+    await fetch(`${BACKEND_URL}/subscribe`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        token:     t,
+        wishlist:  state.wishlist,
+        alarmMode: state.alarmMode,
+      }),
+    });
+  } catch(e) {
+    console.warn("Sync subscription failed:", e.message);
+  }
+}
 
+// Update push button UI
+function updatePushUI(enabled) {
+  const btn  = document.getElementById("pushBtn");
+  const note = document.getElementById("pushNote");
+  if (btn) {
+    btn.textContent = enabled ? "✅ Push Notifications ON" : "Enable Push Notifications";
+    btn.classList.toggle("push-on", enabled);
+    btn.disabled = false;
+  }
+  if (note && enabled) {
+    note.textContent = "You will receive alerts even when your phone is locked! 🔔";
+    note.style.color = "var(--green)";
+  }
+}
+
+// Auto-sync when wishlist or alarm mode changes
+const _origToggle = toggleWishlist;
+toggleWishlist = function(id) {
+  _origToggle(id);
+  syncSubscription();
+};
+
+const _origMode = setAlarmMode;
+setAlarmMode = function(mode) {
+  _origMode(mode);
+  syncSubscription();
+};
+
+// On load — check if already subscribed
+document.addEventListener("DOMContentLoaded", () => {
+  const saved = localStorage.getItem("fa_fcm_token");
+  if (saved && Notification.permission === "granted") {
+    updatePushUI(true);
+    syncSubscription(saved);
+  }
+});
