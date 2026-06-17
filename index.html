@@ -148,8 +148,12 @@
       <!-- Push notification notice -->
       <div class="push-notice">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4m0-4h.01"/></svg>
-        <span>To get notified when your phone is locked, keep this tab open in Chrome. The alarm only fires while the browser is running. Push notifications (which work when locked) are coming in v2.</span>
+        <span id="pushNote">Enable push notifications to get alerted even when your phone is locked.</span>
       </div>
+
+      <button class="push-btn" id="pushBtn" onclick="enablePushNotifications()">
+        🔔 Enable Push Notifications
+      </button>
     </section>
 
   </main>
@@ -159,6 +163,8 @@
     <p>Add to Home Screen in Chrome for the best experience.</p>
   </footer>
 
+  <script src="fruits.js"></script>
+  <script src="icons.js"></script>
   <script src="app.js"></script>
   <script>
     if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
