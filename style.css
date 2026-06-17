@@ -285,25 +285,3 @@ body{font-family:var(--font);background:var(--bg);color:var(--t1);min-height:100
   align-items: center;
   justify-content: center;
 }
-
-/* ── V5 PRICES ── */
-.fruit-prices {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-.price-beli {
-  font-size: 11px;
-  color: var(--text-2);
-  font-weight: 500;
-}
-.price-robux {
-  font-size: 10px;
-  color: var(--text-3);
-  background: var(--bg-card3);
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  padding: 1px 5px;
-}
-.out-stock { opacity: 0.45; }
