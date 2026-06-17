@@ -344,7 +344,7 @@ async function enablePushNotifications() {
       }
     });
 
-    const reg   = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
+    const reg = await navigator.serviceWorker.register("/fruitalarm/firebase-messaging-sw.js");
     const token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: reg });
 
     if (!token) throw new Error("No FCM token received");
