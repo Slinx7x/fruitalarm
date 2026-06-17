@@ -285,3 +285,51 @@ body{font-family:var(--font);background:var(--bg);color:var(--t1);min-height:100
   align-items: center;
   justify-content: center;
 }
+
+/* ── V5 PRICES ── */
+.fruit-prices {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.price-beli {
+  font-size: 11px;
+  color: var(--text-2);
+  font-weight: 500;
+}
+.price-robux {
+  font-size: 10px;
+  color: var(--text-3);
+  background: var(--bg-card3);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1px 5px;
+}
+.out-stock { opacity: 0.45; }
+
+/* ── PUSH NOTIFICATION BUTTON ── */
+.push-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 13px;
+  margin-top: 10px;
+  background: transparent;
+  color: var(--accent);
+  border: 1.5px solid var(--accent);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.push-btn:hover { background: var(--accent-dim); }
+.push-btn.push-on {
+  background: var(--green-dim);
+  border-color: var(--green);
+  color: var(--green);
+}
+.push-btn:disabled { opacity: 0.6; cursor: not-allowed; }
