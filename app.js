@@ -1,9 +1,20 @@
 // ================================================================
-//  FruitAlarm — app.js v5
-//  Uses fruits.js (verified 41 fruits) + icons.js (SVG icons)
+//  FruitAlarm — app.js v7 CLEAN
 // ================================================================
 
 const BACKEND_URL = "https://fruitalarm-backend.onrender.com";
+
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyBPbVv3fEpBdu_tFWQFvJ-0V_Q5BpAIAc0",
+  authDomain:        "fruitalarm.firebaseapp.com",
+  projectId:         "fruitalarm",
+  storageBucket:     "fruitalarm.firebasestorage.app",
+  messagingSenderId: "816625926759",
+  appId:             "1:816625926759:web:7142c3e01f87b9a1d30ac2",
+};
+
+// ← Paste your VAPID key from Firebase here between the quotes
+const VAPID_KEY = "YOUR_VAPID_KEY_HERE";
 
 // ── APP STATE ─────────────────────────────────────────────────────
 const state = {
@@ -105,6 +116,7 @@ function setAlarmMode(mode) {
   document.querySelectorAll(".mode-btn").forEach(b =>
     b.classList.toggle("active", b.dataset.mode === mode));
   checkAlarm();
+  syncPushSubscription();
 }
 
 // ── COUNTDOWN ─────────────────────────────────────────────────────
@@ -121,7 +133,7 @@ function updateCountdown() {
   if (remN === 1) setTimeout(loadLiveStock, 3000);
 }
 
-// ── FORMAT HELPERS ────────────────────────────────────────────────
+// ── FORMAT ────────────────────────────────────────────────────────
 function fmtBeli(n) {
   if (n >= 1_000_000) return `${(n/1_000_000).toFixed(n%1_000_000===0?0:1)}M`;
   if (n >= 1_000)     return `${Math.round(n/1000)}K`;
@@ -149,14 +161,13 @@ function renderStockGrid(gridId, inStockFruits, label) {
         ? `<div style="font-size:22px;margin-bottom:8px">⏳</div>Fetching live stock...`
         : `<div style="font-size:22px;margin-bottom:8px">🔴</div>
            <strong style="color:var(--text-1)">Backend not deployed yet</strong><br>
-           <span style="font-size:11px;color:var(--text-3)">Open README.md and follow Step 2 to connect the live stock bot.<br>Once deployed, this will show real fruits from FruityBlox.</span>`}
+           <span style="font-size:11px;color:var(--text-3)">Follow README Step 2 to connect the live stock bot.</span>`}
     </div>`;
     return;
   }
 
   const inIds = new Set(inStockFruits.map(f => f.id));
 
-  // IN stock cards
   inStockFruits.forEach(fruit => {
     const card = document.createElement("div");
     card.className = "fruit-card in-stock";
@@ -176,7 +187,6 @@ function renderStockGrid(gridId, inStockFruits, label) {
     grid.appendChild(card);
   });
 
-  // OUT of stock (first 4, dimmed)
   ALL_FRUITS.filter(f => !inIds.has(f.id)).slice(0, 4).forEach(fruit => {
     const card = document.createElement("div");
     card.className = "fruit-card out-stock";
@@ -240,6 +250,7 @@ function toggleWishlist(id) {
   localStorage.setItem("fa_wishlist", JSON.stringify(state.wishlist));
   renderWishlist();
   checkAlarm();
+  syncPushSubscription();
 }
 
 // ── ALARM CHECK ───────────────────────────────────────────────────
@@ -267,38 +278,31 @@ async function loadLiveStock() {
     const resp = await fetch(`${BACKEND_URL}/stock`, { signal: AbortSignal.timeout(8000) });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
-
-    // Backend sends fruit IDs (lowercase slugs) — map to our fruit objects
     state.normalStock = (data.normalStock || [])
-      .map(id => FRUIT_BY_NAME[id.toLowerCase().replace(/-/g,"")
-        ] || FRUIT_BY_NAME[id.toLowerCase()]).filter(Boolean);
+      .map(id => FRUIT_BY_NAME[id.toLowerCase().replace(/[^a-z]/g,"")]).filter(Boolean);
     state.mirageStock = (data.mirageStock || [])
-      .map(id => FRUIT_BY_NAME[id.toLowerCase().replace(/-/g,"")
-        ] || FRUIT_BY_NAME[id.toLowerCase()]).filter(Boolean);
-    state.stockSource = data.source || "fruityblox";
+      .map(id => FRUIT_BY_NAME[id.toLowerCase().replace(/[^a-z]/g,"")]).filter(Boolean);
+    state.stockSource = data.source || "discord-vulcan";
     state.lastUpdated = data.lastUpdated || new Date().toISOString();
-
   } catch (err) {
     console.warn("Backend unavailable:", err.message);
-    // No fake fruits — show empty with clear message
     state.normalStock = [];
     state.mirageStock = [];
     state.stockSource = "offline";
     state.lastUpdated = new Date().toISOString();
   }
 
-  // Source status message
   const srcMsg = {
-    fruityblox: "✅ Live data from FruityBlox",
-    cached:     "⚠️ Cached — scrape failed, showing last known stock",
-    fallback:   "⚠️ Backend returned minimal fallback",
-    offline:    "🔴 Backend not deployed yet — follow README Step 2 to go live",
+    "discord-vulcan": "✅ Live stock from Discord",
+    "cached":         "⚠️ Cached — last known stock",
+    "offline":        "🔴 Backend offline — check Render.com",
+    "fallback":       "⚠️ Fallback stock",
   };
   const note = document.getElementById("stockNote");
   if (note) {
     const time = state.lastUpdated ? ` · ${new Date(state.lastUpdated).toLocaleTimeString()}` : "";
     note.textContent = `${srcMsg[state.stockSource] || state.stockSource}${time}`;
-    note.style.color = state.stockSource === "fruityblox" ? "var(--green)" : "var(--text-3)";
+    note.style.color = state.stockSource === "discord-vulcan" ? "var(--green)" : "var(--text-3)";
   }
 
   renderStockGrid("normalStockGrid", state.normalStock, "Normal");
@@ -309,6 +313,77 @@ async function loadLiveStock() {
 }
 
 function refreshStock() { loadLiveStock(); }
+
+// ── PUSH NOTIFICATIONS ────────────────────────────────────────────
+async function enablePushNotifications() {
+  const btn = document.getElementById("pushBtn");
+  if (btn) { btn.disabled = true; btn.textContent = "Setting up..."; }
+
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission !== "granted") {
+      alert("Notifications blocked. Please allow in browser settings.");
+      if (btn) { btn.disabled = false; btn.textContent = "🔔 Enable Push Notifications"; }
+      return;
+    }
+
+    const { initializeApp }  = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
+    const { getMessaging, getToken, onMessage } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging.js");
+
+    const app       = initializeApp(FIREBASE_CONFIG);
+    const messaging = getMessaging(app);
+
+    onMessage(messaging, payload => {
+      const { title, body } = payload.notification || {};
+      if (title) {
+        document.getElementById("alarmStatusText").textContent = title;
+        document.getElementById("alarmStatusBar").style.display = "flex";
+        playSound();
+        state.alarmRunning = true;
+        state.alarmInterval = setInterval(playSound, 1800);
+      }
+    });
+
+    const reg   = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
+    const token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: reg });
+
+    if (!token) throw new Error("No FCM token received");
+    localStorage.setItem("fa_fcm_token", token);
+    await syncPushSubscription(token);
+    updatePushUI(true);
+
+  } catch(e) {
+    console.error("Push setup failed:", e);
+    alert(`Push setup failed: ${e.message}`);
+    if (btn) { btn.disabled = false; btn.textContent = "🔔 Enable Push Notifications"; }
+  }
+}
+
+async function syncPushSubscription(token) {
+  const t = token || localStorage.getItem("fa_fcm_token");
+  if (!t || Notification.permission !== "granted") return;
+  try {
+    await fetch(`${BACKEND_URL}/subscribe`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: t, wishlist: state.wishlist, alarmMode: state.alarmMode }),
+    });
+  } catch(e) { console.warn("Sync failed:", e.message); }
+}
+
+function updatePushUI(enabled) {
+  const btn  = document.getElementById("pushBtn");
+  const note = document.getElementById("pushNote");
+  if (btn) {
+    btn.textContent = enabled ? "✅ Push Notifications ON" : "🔔 Enable Push Notifications";
+    btn.classList.toggle("push-on", enabled);
+    btn.disabled = false;
+  }
+  if (note && enabled) {
+    note.textContent = "You'll get alerted even when your phone is locked! 🔔";
+    note.style.color = "var(--green)";
+  }
+}
 
 // ── INIT ──────────────────────────────────────────────────────────
 function init() {
@@ -323,164 +398,13 @@ function init() {
   updateCountdown();
   setInterval(updateCountdown, 1000);
   loadLiveStock();
-}
 
-document.addEventListener("DOMContentLoaded", init);
-
-// ================================================================
-//  PUSH NOTIFICATIONS — Firebase Cloud Messaging
-// ================================================================
-
-const FIREBASE_CONFIG = {
-  apiKey:            "AIzaSyBPbVv3fEpBdu_tFWQFvJ-0V_Q5BpAIAc0",
-  authDomain:        "fruitalarm.firebaseapp.com",
-  projectId:         "fruitalarm",
-  storageBucket:     "fruitalarm.firebasestorage.app",
-  messagingSenderId: "816625926759",
-  appId:             "1:816625926759:web:7142c3e01f87b9a1d30ac2",
-};
-
-// Your VAPID key from Firebase Console → Project Settings → Cloud Messaging
-const VAPID_KEY = process.env.FIREBASE_VAPID_KEY ||
-  "BJulZkALQHCmLXSOA56PL0WlL0OPx0YSs9dWX_AVVioBi7WcwPVP8xnlyQZG1PexC78ba5avrHa97zczG1N6Uu0"; // ← replace this after deploy
-
-let firebaseApp  = null;
-let fcmMessaging = null;
-
-async function initFirebase() {
-  try {
-    // Dynamically load Firebase SDK
-    const { initializeApp }  = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
-    const { getMessaging, getToken, onMessage } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging.js");
-
-    firebaseApp  = initializeApp(FIREBASE_CONFIG);
-    fcmMessaging = getMessaging(firebaseApp);
-
-    // Handle foreground messages (app is open)
-    onMessage(fcmMessaging, payload => {
-      console.log("Foreground message:", payload);
-      const { title, body } = payload.notification || {};
-      if (title) showInAppNotification(title, body);
-    });
-
-    return { getToken, messaging: fcmMessaging };
-  } catch(e) {
-    console.warn("Firebase init failed:", e.message);
-    return null;
-  }
-}
-
-// Show a banner inside the app for foreground messages
-function showInAppNotification(title, body) {
-  const bar = document.getElementById("alarmStatusBar");
-  const txt = document.getElementById("alarmStatusText");
-  if (bar && txt) {
-    txt.textContent = title;
-    bar.style.display = "flex";
-    playSound();
-    state.alarmRunning = true;
-    state.alarmInterval = setInterval(playSound, 1800);
-  }
-}
-
-// Request notification permission and get FCM token
-async function enablePushNotifications() {
-  const btn = document.getElementById("pushBtn");
-  if (btn) { btn.disabled = true; btn.textContent = "Setting up..."; }
-
-  try {
-    // 1. Ask permission
-    const permission = await Notification.requestPermission();
-    if (permission !== "granted") {
-      alert("Notifications blocked. Please allow notifications in your browser settings.");
-      if (btn) { btn.disabled = false; btn.textContent = "Enable Push Notifications"; }
-      return;
-    }
-
-    // 2. Init Firebase
-    const firebase = await initFirebase();
-    if (!firebase) throw new Error("Firebase failed to load");
-
-    // 3. Register service worker
-    const reg = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
-
-    // 4. Get FCM token
-    const token = await firebase.getToken(firebase.messaging, {
-      vapidKey:          VAPID_KEY,
-      serviceWorkerRegistration: reg,
-    });
-
-    if (!token) throw new Error("No FCM token received");
-
-    // 5. Send token + wishlist + alarmMode to backend
-    await syncSubscription(token);
-
-    // Save token locally
-    localStorage.setItem("fa_fcm_token", token);
-
-    // Update UI
-    updatePushUI(true);
-    console.log("✅ Push notifications enabled");
-
-  } catch(e) {
-    console.error("Push setup failed:", e.message);
-    alert(`Push notifications failed: ${e.message}`);
-    if (btn) { btn.disabled = false; btn.textContent = "Enable Push Notifications"; }
-  }
-}
-
-// Send subscription info to backend
-async function syncSubscription(token) {
-  const t = token || localStorage.getItem("fa_fcm_token");
-  if (!t) return;
-  try {
-    await fetch(`${BACKEND_URL}/subscribe`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        token:     t,
-        wishlist:  state.wishlist,
-        alarmMode: state.alarmMode,
-      }),
-    });
-  } catch(e) {
-    console.warn("Sync subscription failed:", e.message);
-  }
-}
-
-// Update push button UI
-function updatePushUI(enabled) {
-  const btn  = document.getElementById("pushBtn");
-  const note = document.getElementById("pushNote");
-  if (btn) {
-    btn.textContent = enabled ? "✅ Push Notifications ON" : "Enable Push Notifications";
-    btn.classList.toggle("push-on", enabled);
-    btn.disabled = false;
-  }
-  if (note && enabled) {
-    note.textContent = "You will receive alerts even when your phone is locked! 🔔";
-    note.style.color = "var(--green)";
-  }
-}
-
-// Auto-sync when wishlist or alarm mode changes
-const _origToggle = toggleWishlist;
-toggleWishlist = function(id) {
-  _origToggle(id);
-  syncSubscription();
-};
-
-const _origMode = setAlarmMode;
-setAlarmMode = function(mode) {
-  _origMode(mode);
-  syncSubscription();
-};
-
-// On load — check if already subscribed
-document.addEventListener("DOMContentLoaded", () => {
+  // Restore push state
   const saved = localStorage.getItem("fa_fcm_token");
   if (saved && Notification.permission === "granted") {
     updatePushUI(true);
-    syncSubscription(saved);
+    syncPushSubscription(saved);
   }
-});
+}
+
+document.addEventListener("DOMContentLoaded", init);
