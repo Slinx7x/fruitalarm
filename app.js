@@ -65,18 +65,49 @@ function playSound() {
 function startAlarm(fruitName, stockType) {
   if (state.alarmRunning) return;
   state.alarmRunning = true;
-  const label = stockType === "mirage" ? "Mirage Stock" : "Normal Stock";
-  document.getElementById("alarmStatusText").textContent = `${fruitName} is in ${label} — buy now!`;
+  const label  = stockType === "mirage" ? "Mirage Stock" : "Normal Stock";
+  const fruit  = ALL_FRUITS.find(f => f.name.toLowerCase() === fruitName.toLowerCase() || f.id === fruitName.toLowerCase());
+
+  // Update overlay text
+  document.getElementById("alarmStatusText").textContent = `${fruitName} · ${label}`;
   document.getElementById("alarmStatusBar").style.display = "flex";
-  document.title = "🚨 FRUIT IN STOCK — FruitAlarm";
+  document.title = `🚨 ${fruitName} IN STOCK — FruitAlarm`;
+
+  // Show fruit icon in overlay
+  const iconWrap = document.getElementById("alarmFruitIcon");
+  if (iconWrap && fruit) {
+    iconWrap.innerHTML = getFruitIcon(fruit, 80);
+    // Color pulse rings based on rarity
+    const rarityGlow = {
+      mythical: "#c084fc", legendary: "#facc15",
+      rare: "#60a5fa", uncommon: "#22c55e", common: "#9ca3af"
+    };
+    const col = rarityGlow[fruit.rarity] || "#f97316";
+    document.querySelectorAll(".alarm-pulse-ring").forEach(r => {
+      r.style.borderColor = col;
+    });
+    document.querySelector(".alarm-fruit-icon").style.borderColor = col;
+    document.querySelector(".alarm-fruit-icon").style.boxShadow = `0 0 30px ${col}66, 0 0 60px ${col}33`;
+    document.querySelector(".alarm-label").style.color = col;
+  }
+
   playSound();
   state.alarmInterval = setInterval(playSound, 1800);
 }
+
 function stopAlarm() {
   state.alarmRunning = false;
   clearInterval(state.alarmInterval);
   document.getElementById("alarmStatusBar").style.display = "none";
   document.title = "FruitAlarm — Blox Fruits Stock Notifier";
+}
+
+function snoozeAlarm() {
+  // Stop alarm for 10 minutes then re-check
+  stopAlarm();
+  setTimeout(() => {
+    checkAlarm();
+  }, 10 * 60 * 1000);
 }
 function testAlarm() {
   const btn = document.getElementById("testBtn");
