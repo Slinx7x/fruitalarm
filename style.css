@@ -333,3 +333,223 @@ body{font-family:var(--font);background:var(--bg);color:var(--t1);min-height:100
   color: var(--green);
 }
 .push-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* ================================================================
+   V8 — DRAMATIC ALARM OVERLAY + POLISHED UI
+   ================================================================ */
+
+/* ── FULL SCREEN ALARM OVERLAY ── */
+.alarm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.alarm-overlay-bg {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.92);
+  backdrop-filter: blur(8px);
+  animation: alarmBgFlash 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes alarmBgFlash {
+  from { background: rgba(0,0,0,0.92); }
+  to   { background: rgba(30,0,0,0.95); }
+}
+
+.alarm-overlay-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 40px 32px;
+  text-align: center;
+  max-width: 340px;
+  width: 90%;
+}
+
+/* ── FRUIT ICON WITH PULSE RINGS ── */
+.alarm-icon-wrap {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.alarm-pulse-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 3px solid var(--accent);
+  animation: pulseRing 1.4s ease-out infinite;
+  opacity: 0;
+}
+
+.alarm-pulse-ring.delay1 {
+  animation-delay: 0.7s;
+}
+
+@keyframes pulseRing {
+  0%   { transform: scale(0.8); opacity: 0.8; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+
+.alarm-fruit-icon {
+  width: 100px;
+  height: 100px;
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-card2);
+  border: 2px solid var(--accent);
+  box-shadow: 0 0 30px var(--accent-glow), 0 0 60px rgba(249,115,22,0.2);
+  animation: iconBob 0.5s ease-in-out infinite alternate;
+  overflow: hidden;
+}
+
+.alarm-fruit-icon svg {
+  width: 80px !important;
+  height: 80px !important;
+}
+
+@keyframes iconBob {
+  from { transform: scale(1); }
+  to   { transform: scale(1.06); }
+}
+
+.alarm-label {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  color: var(--accent);
+  text-transform: uppercase;
+}
+
+.alarm-fruit-name {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--text-1);
+  letter-spacing: -0.5px;
+  line-height: 1.2;
+}
+
+.alarm-sub {
+  font-size: 13px;
+  color: var(--text-2);
+  line-height: 1.5;
+}
+
+.alarm-stop-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 16px;
+  background: var(--red);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 8px;
+  animation: stopBtnPulse 0.6s ease-in-out infinite alternate;
+  letter-spacing: 0.02em;
+}
+
+@keyframes stopBtnPulse {
+  from { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+  to   { box-shadow: 0 0 20px 4px rgba(239,68,68,0.5); }
+}
+
+.alarm-snooze-btn {
+  background: transparent;
+  border: 1px solid var(--border-bright);
+  color: var(--text-2);
+  border-radius: var(--radius-md);
+  padding: 10px 24px;
+  font-size: 13px;
+  cursor: pointer;
+  width: 100%;
+}
+.alarm-snooze-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── POLISHED STOCK CARDS ── */
+.fruit-card.in-stock {
+  border-color: rgba(34,197,94,0.5) !important;
+  background: linear-gradient(135deg, rgba(34,197,94,0.05), var(--bg-card2)) !important;
+  box-shadow: 0 0 12px rgba(34,197,94,0.1), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+.fruit-card.in-stock .rarity-pip.mythical {
+  box-shadow: 0 0 8px rgba(192,132,252,0.4);
+}
+.fruit-card.in-stock .rarity-pip.legendary {
+  box-shadow: 0 0 8px rgba(250,204,21,0.4);
+}
+.fruit-card.in-stock .rarity-pip.rare {
+  box-shadow: 0 0 8px rgba(96,165,250,0.4);
+}
+
+/* ── POLISHED TEST ALARM BUTTON ── */
+.test-alarm-btn {
+  background: linear-gradient(135deg, #f97316, #ea580c) !important;
+  box-shadow: 0 4px 15px rgba(249,115,22,0.3);
+  border: none !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.test-alarm-btn::before {
+  content: "";
+  position: absolute;
+  top: 0; left: -100%;
+  width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+  transition: left 0.5s;
+}
+
+.test-alarm-btn:hover::before { left: 100%; }
+.test-alarm-btn:hover { box-shadow: 0 6px 20px rgba(249,115,22,0.5) !important; }
+
+.test-alarm-btn.ringing {
+  background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+  box-shadow: 0 4px 15px rgba(239,68,68,0.4) !important;
+  animation: ringShake 0.25s ease-in-out infinite alternate, stopBtnPulse 0.6s ease-in-out infinite alternate !important;
+}
+
+/* ── WISHLIST MATCHED GLOW ── */
+.wishlist-item.matched {
+  box-shadow: 0 0 0 2px rgba(34,197,94,0.3), 0 0 20px rgba(34,197,94,0.1);
+}
+
+/* ── HEADER GLOW ── */
+.app-header {
+  box-shadow: 0 1px 0 var(--border), 0 4px 20px rgba(0,0,0,0.3);
+}
+
+/* ── SECTION CARDS ── */
+.section {
+  background: linear-gradient(180deg, transparent, rgba(255,255,255,0.01));
+}
+
+/* ── TIMER VALUE GLOW ── */
+.timer-value {
+  text-shadow: 0 0 20px rgba(249,115,22,0.4);
+}
+
+/* ── LIVE DOT GLOW ── */
+.live-dot {
+  box-shadow: 0 0 6px rgba(34,197,94,0.8);
+}
