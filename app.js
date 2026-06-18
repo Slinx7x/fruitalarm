@@ -320,6 +320,18 @@ async function enablePushNotifications() {
   if (btn) { btn.disabled = true; btn.textContent = "Setting up..."; }
 
   try {
+    // Check if notifications are supported on this browser/device
+    if (!("Notification" in window)) {
+      alert("Push notifications are not supported on this browser. Please use Chrome on Android.");
+      if (btn) { btn.disabled = false; btn.textContent = "🔔 Enable Push Notifications"; }
+      return;
+    }
+    if (!("serviceWorker" in navigator)) {
+      alert("Service workers not supported. Please use Chrome on Android.");
+      if (btn) { btn.disabled = false; btn.textContent = "🔔 Enable Push Notifications"; }
+      return;
+    }
+
     const permission = await Notification.requestPermission();
     if (permission !== "granted") {
       alert("Notifications blocked. Please allow in browser settings.");
@@ -406,14 +418,24 @@ function init() {
   switchTab("normal");
   updateCountdown();
   setInterval(updateCountdown, 1000);
-  setInterval(loadLiveStock, 2 * 60 * 1000);
   loadLiveStock();
 
-  // Restore push state
+  // Auto-refresh stock every 90 seconds — alarm triggers automatically
+  setInterval(loadLiveStock, 90 * 1000);
+
+  // Restore push state safely
   const saved = localStorage.getItem("fa_fcm_token");
-  if (saved && Notification.permission === "granted") {
+  if (saved && ("Notification" in window) && Notification.permission === "granted") {
     updatePushUI(true);
     syncPushSubscription(saved);
+  }
+
+  // Hide push button on unsupported browsers
+  if (!("Notification" in window) || !("serviceWorker" in navigator)) {
+    const pushBtn  = document.getElementById("pushBtn");
+    const pushNote = document.getElementById("pushNote");
+    if (pushBtn)  pushBtn.style.display  = "none";
+    if (pushNote) pushNote.textContent   = "Push notifications require Chrome on Android.";
   }
 }
 
