@@ -1,11 +1,12 @@
 {
-  "name": "FruitAlarm — Blox Fruits Notifier",
-  "short_name": "FruitAlarm",
-  "description": "Never miss a rare Blox Fruits stock again. Get alerted when Kitsune, Dragon, Leopard or any wishlist fruit appears.",
-  "start_url": "/",
+  "name": "RoStock — Roblox Stock Alerts",
+  "short_name": "RoStock",
+  "description": "Never miss a Roblox stock again. Real-time alerts for Blox Fruits and more.",
+  "start_url": "/fruitalarm/",
+  "scope": "/fruitalarm/",
   "display": "standalone",
-  "background_color": "#0a0a0f",
-  "theme_color": "#0a0a0f",
+  "background_color": "#080818",
+  "theme_color": "#080818",
   "orientation": "portrait",
   "icons": [
     {
