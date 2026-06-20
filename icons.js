@@ -1,4 +1,42 @@
 // ================================================================
+//  Real fruit images — loaded from /images/ folder
+//  Falls back to generated SVG icon if image fails to load
+// ================================================================
+
+function getFruitIcon(fruit, size = 48) {
+  const corner = Math.round(size * 0.22);
+  const col = RARITY_COLORS[fruit.rarity] || RARITY_COLORS.common;
+
+  // Try real image first — files are in /images/fruitid.png
+  // e.g. kitsune.png, dragon.png, trex.png etc
+  const imgSrc = `images/${fruit.id}.png`;
+
+  return `<div style="width:${size}px;height:${size}px;flex-shrink:0;border-radius:${corner}px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:${col.bg};border:1.5px solid ${col.border};">
+    <img
+      src="${imgSrc}"
+      alt="${fruit.name}"
+      width="${size}"
+      height="${size}"
+      style="object-fit:contain;width:100%;height:100%;padding:4px;"
+      onerror="this.parentElement.innerHTML=getSVGIcon('${fruit.id}',${size},'${fruit.rarity}');"
+      loading="lazy"
+    />
+  </div>`;
+}
+
+// Fallback SVG icon when image fails
+function getSVGIcon(id, size, rarity) {
+  const col = RARITY_COLORS[rarity] || RARITY_COLORS.common;
+  const corner = Math.round(size * 0.22);
+  const paths = FRUIT_ICONS[id] || "";
+  return `<svg width="${size}" height="${size}" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style="border-radius:${corner}px;display:block;">
+    <rect width="64" height="64" rx="${corner}" fill="${col.bg}"/>
+    <rect width="64" height="64" rx="${corner}" fill="none" stroke="${col.border}" stroke-width="2.5"/>
+    <g color="${col.glow}">${paths || `<text x="32" y="40" text-anchor="middle" font-size="28" font-weight="bold" fill="${col.text}" font-family="system-ui">${id.charAt(0).toUpperCase()}</text>`}</g>
+  </svg>`;
+}
+
+// ================================================================
 //  FruitAlarm — icons.js
 //  Generates a unique SVG icon for every fruit.
 //  Each icon has:
@@ -264,19 +302,3 @@ const FRUIT_ICONS = {
 
 // ── GENERATE ICON SVG ─────────────────────────────────────────────
 // Returns a complete <svg> string for a given fruit at a given size
-function getFruitIcon(fruit, size = 48) {
-  const col = RARITY_COLORS[fruit.rarity] || RARITY_COLORS.common;
-  const paths = FRUIT_ICONS[fruit.id] || FRUIT_ICONS[fruit.name?.toLowerCase()];
-  const corner = Math.round(size * 0.22);
-
-  // Scale from 64 viewBox to requested size
-  return `<svg width="${size}" height="${size}" viewBox="0 0 64 64"
-    xmlns="http://www.w3.org/2000/svg"
-    style="flex-shrink:0;border-radius:${corner}px;display:block;">
-    <rect width="64" height="64" rx="${corner}" fill="${col.bg}"/>
-    <rect width="64" height="64" rx="${corner}" fill="none" stroke="${col.border}" stroke-width="2.5"/>
-    <g color="${col.glow}">
-      ${paths || `<text x="32" y="40" text-anchor="middle" font-size="28" font-weight="bold" fill="${col.text}" font-family="system-ui">${fruit.name.charAt(0)}</text>`}
-    </g>
-  </svg>`;
-}
