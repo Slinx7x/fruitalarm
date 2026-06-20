@@ -2,7 +2,7 @@
   "name": "RoStock — Roblox Stock Alerts",
   "short_name": "RoStock",
   "description": "Never miss a Roblox stock again. Real-time alerts for Blox Fruits and more.",
-  "start_url": "/fruitalarm/",
+  "start_url": "/fruitalarm/index.html",
   "scope": "/fruitalarm/",
   "display": "standalone",
   "background_color": "#080818",
