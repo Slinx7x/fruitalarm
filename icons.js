@@ -9,7 +9,7 @@ function getFruitIcon(fruit, size = 48) {
 
   // Try real image first — files are in /images/fruitid.png
   // e.g. kitsune.png, dragon.png, trex.png etc
-  const imgSrc = `${fruit.id}.png`;
+  const imgSrc = `images/${fruit.id}.png`;
 
   return `<div style="width:${size}px;height:${size}px;flex-shrink:0;border-radius:${corner}px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:${col.bg};border:1.5px solid ${col.border};">
     <img
